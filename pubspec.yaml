@@ -1,0 +1,176 @@
+name: myapp
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.00+1000
+
+environment:
+  sdk: ">=3.4.3 <4.0.0"
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_svg: any
+  cupertino_icons: ^1.0.8
+  intl: ^0.19.0
+  provider: ^6.1.2
+  shared_preferences: 2.0.15
+  url_launcher: ^6.2.3
+  share_plus: ^7.2.1
+  marquee: ^2.3.0
+  in_app_purchase: ^3.1.11
+  in_app_review: ^2.0.8
+  restart_app: ^1.3.2
+  shimmer: ^3.0.0
+  uuid: ^4.5.1
+  fl_chart: ^0.69.2
+  sqflite: ^2.3.0
+  video_player: ^2.9.3
+  visibility_detector: ^0.4.0+2
+  cached_network_image: ^3.4.1
+  chewie: ^1.7.5
+  timeago: ^3.7.0
+  flutter_staggered_grid_view: ^0.7.0
+  just_audio: ^0.9.36
+  image_picker: ^1.1.2
+  material_design_icons_flutter: ^7.0.7296
+  confetti: ^0.7.0
+  lottie: ^3.1.0
+  flutter_compass: ^0.8.0
+  geolocator: ^10.1.0
+  get: ^4.7.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^4.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+  generate: true
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - assets/
+    - assets/image/svg/
+    - assets/images/
+    - assets/images/utsav/
+    - assets/images/utsav/banners/
+    - assets/images/utsav/categories/
+    - assets/images/listings/items/
+    - assets/images/listings/banner/
+    - assets/images/spiritual/
+    - assets/images/spiritual/islam/
+    - assets/images/spiritual/backgrounds/
+    - assets/images/events/
+    - assets/videos/
+    - assets/audio/
+    - assets/audio/quiz/
+    - assets/images/signin/
+    - assets/images/quiz/
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/poppins/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/poppins/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/poppins/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/poppins/Poppins-Bold.ttf
+          weight: 700
+    - family: PTSerif
+      fonts:
+        - asset: assets/fonts/ptSerif/PTSerif-Regular.ttf
+          weight: 300
+        - asset: assets/fonts/ptSerif/PTSerif-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/ptSerif/PTSerif-Regular.ttf
+          weight: 500
+        - asset: assets/fonts/ptSerif/PTSerif-Bold.ttf
+          weight: 600
+        - asset: assets/fonts/ptSerif/PTSerif-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/ptSerif/PTSerif-Italic.ttf
+          weight: 500
+        - asset: assets/fonts/ptSerif/PTSerif-BoldItalic.ttf
+          weight: 700
+          style: italic
+    - family: FacebookSans
+      fonts:
+        - asset: assets/fonts/facebookSans/FacebookSansHairline.ttf
+          weight: 100
+        - asset: assets/fonts/facebookSans/FacebookSansHairlineItalic.ttf
+          weight: 100
+          style: italic
+        - asset: assets/fonts/facebookSans/FacebookSansLight.ttf
+          weight: 300
+        - asset: assets/fonts/facebookSans/FacebookSansLightItalic.ttf
+          weight: 300
+          style: italic
+        - asset: assets/fonts/facebookSans/FacebookSansRegular.ttf
+          weight: 400
+        - asset: assets/fonts/facebookSans/FacebookSansItalic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/facebookSans/FacebookSansBold.ttf
+          weight: 700
+        - asset: assets/fonts/facebookSans/FacebookSansBoldItalic.ttf
+          weight: 700
+          style: italic
+        - asset: assets/fonts/facebookSans/FacebookSansHeavy.ttf
+          weight: 900
+        - asset: assets/fonts/facebookSans/FacebookSansHeavyItalic.ttf
+          weight: 900
+          style: italic
+    - family: FacebookNarrowApp
+      fonts:
+        - asset: assets/fonts/facebookSans/FacebookNarrowAppRegular.ttf
+          weight: 400

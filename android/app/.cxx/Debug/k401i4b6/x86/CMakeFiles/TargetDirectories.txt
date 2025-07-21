@@ -1,0 +1,2 @@
+/Users/ajay/flutter projects/Social-Media/android/app/.cxx/Debug/k401i4b6/x86/CMakeFiles/edit_cache.dir
+/Users/ajay/flutter projects/Social-Media/android/app/.cxx/Debug/k401i4b6/x86/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,55 @@
+final List<Map<String, dynamic>> dummyPosts = [
+  {
+    'username': 'johndoe',
+    'profileImage': 'assets/images/avatars/1.png',
+    'postImage': 'assets/images/posts/1.jpg',
+    'likeCount': 123,
+    'caption':
+        'Exploring the beautiful mountains of Switzerland during my European adventure. The crisp alpine air, stunning panoramic views, and the serene atmosphere made this one of the most memorable experiences of my life. If you ever get the chance to visit the Swiss Alps, dont hesitate! Every valley, peak, and glacier has its own character and charm. I\'ll definitely be coming back next summer to explore more of this magnificent landscape.',
+    'time': '2 hours ago',
+    'location': 'Switzerland',
+    'comments': 14,
+  },
+  {
+    'username': 'emily_designs',
+    'profileImage': 'assets/images/avatars/2.png',
+    'postImage': 'assets/images/posts/2.jpg',
+    'likeCount': 438,
+    'caption': 'New collection dropping soon!',
+    'time': '5 hours ago',
+    'location': 'Design Studio',
+    'comments': 27,
+  },
+  {
+    'username': 'travel_mike',
+    'profileImage': 'assets/images/avatars/3.png',
+    'postImage': 'assets/images/posts/3.jpg',
+    'likeCount': 637,
+    'caption':
+        'Sunset at Bali beach. Taking a moment to appreciate the breathtaking beauty of nature in this tropical paradise. The way the golden rays of the setting sun paint the sky in vibrant hues of orange, pink, and purple is truly spectacular. The gentle sound of waves crashing against the shore, the soft sand beneath my feet, and the warm ocean breeze make this moment perfect. This is what traveling is all about - finding those special places that take your breath away and create memories that last a lifetime.',
+    'time': '8 hours ago',
+    'location': 'Bali, Indonesia',
+    'comments': 43,
+  },
+  {
+    'username': 'food_lover',
+    'profileImage': 'assets/images/avatars/4.png',
+    'postImage': 'assets/images/posts/4.jpg',
+    'likeCount': 295,
+    'caption':
+        'Homemade pasta with fresh ingredients from the local farmer\'s market. There\'s something incredibly satisfying about making pasta from scratch - mixing the dough, rolling it out, and cutting it into perfect strands. The sauce is a simple combination of heirloom tomatoes, basil, garlic, and high-quality olive oil. Sometimes the simplest dishes are truly the most delicious. Paired with a glass of Chianti and enjoyed on my balcony as the sun sets over the city. Food is more than sustenance; it\'s an experience that brings joy and connection.',
+    'time': '1 day ago',
+    'location': 'Home Kitchen',
+    'comments': 18,
+  },
+  {
+    'username': 'tech_geek',
+    'profileImage': 'assets/images/avatars/5.png',
+    'postImage': 'assets/images/posts/5.jpg',
+    'likeCount': 182,
+    'caption': 'New gadget day!',
+    'time': '2 days ago',
+    'location': 'Tech Hub',
+    'comments': 8,
+  },
+];

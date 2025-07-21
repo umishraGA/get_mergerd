@@ -1,0 +1,42 @@
+{
+  "rules": [
+    {
+      "name": "Widget Organization Rule",
+      "description": "Widgets should be placed in a dedicated widget folder, with main logic in the main page files",
+      "pattern": {
+        "features": {
+          "structure": {
+            "required": [
+              {
+                "path": "*/widgets/",
+                "description": "Each feature should have a widgets folder for UI components"
+              }
+            ]
+          }
+        }
+      },
+      "guidelines": [
+        "All reusable UI components should be placed in the widgets folder",
+        "Main page files should only contain the page structure and business logic",
+        "Dialog widgets should be in the widgets folder, with their logic in the main page",
+        "Widget files should be named with PascalCase and end with 'Widget' (e.g., ProfileCardWidget.dart)",
+        "Each widget should be focused on a single responsibility",
+        "Complex widgets should be broken down into smaller components"
+      ],
+      "examples": {
+        "correct": [
+          {
+            "description": "Proper widget organization",
+            "code": "// lib/features/profile/ProfilePage.dart\nclass ProfilePage extends StatelessWidget {\n  @override\n  Widget build(BuildContext context) {\n    return Scaffold(\n      body: ProfileContentWidget(),\n    );\n  }\n\n  void _handleProfileUpdate() {\n    // Business logic here\n  }\n}\n\n// lib/features/profile/widgets/ProfileContentWidget.dart\nclass ProfileContentWidget extends StatelessWidget {\n  @override\n  Widget build(BuildContext context) {\n    return Column(\n      children: [\n        ProfileHeaderWidget(),\n        ProfileDetailsWidget(),\n      ],\n    );\n  }\n}"
+          }
+        ],
+        "incorrect": [
+          {
+            "description": "Widget defined in the main page file",
+            "code": "// lib/features/profile/ProfilePage.dart\nclass ProfilePage extends StatelessWidget {\n  @override\n  Widget build(BuildContext context) {\n    return Scaffold(\n      body: Column(\n        children: [\n          // Complex widget defined inline\n          Container(\n            // Many properties and nested widgets\n          ),\n        ],\n      ),\n    );\n  }\n}"
+          }
+        ]
+      }
+    }
+  ]
+} 
