@@ -52,7 +52,7 @@ class _EventBookingPageState extends State<SelectDataTime> {
                 return ChoiceChip(
                   label: Text(label),
                   selected: selectedDate == date,
-                  selectedColor: Colors.green,
+                  selectedColor: Colors.red,
                   onSelected: (_) {
                     setState(() {
                       selectedDate = date;
@@ -85,7 +85,7 @@ class _EventBookingPageState extends State<SelectDataTime> {
                     return OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         backgroundColor:
-                        isSelected ? Colors.blue : Colors.transparent,
+                        isSelected ? Colors.red : Colors.transparent,
                         foregroundColor:
                         isSelected ? Colors.white : Colors.black,
                         side: BorderSide(
@@ -124,7 +124,7 @@ class _EventBookingPageState extends State<SelectDataTime> {
                   : null,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
-                backgroundColor: Colors.blue,
+                backgroundColor: Colors.redAccent,
               ),
               child: const Text(
                 "Book Ticket",

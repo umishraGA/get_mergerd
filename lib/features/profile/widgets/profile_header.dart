@@ -4,12 +4,14 @@ class ProfileHeader extends StatelessWidget {
   final String name;
   final String phone;
   final bool isVerified;
+  final String imageUrl; // <-- Added image field
 
   const ProfileHeader({
     super.key,
     required this.name,
     required this.phone,
     this.isVerified = false,
+    required this.imageUrl,
   });
 
   @override
@@ -18,6 +20,7 @@ class ProfileHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
         children: [
+          // Profile Image
           Stack(
             alignment: Alignment.center,
             children: [
@@ -25,11 +28,6 @@ class ProfileHeader extends StatelessWidget {
                 width: 86,
                 height: 86,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Colors.grey, Color(0xFFD8D8D8)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -39,15 +37,23 @@ class ProfileHeader extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-              const Icon(
-                Icons.person,
-                size: 45,
-                color: Colors.white,
+                child: ClipOval(
+                  child: imageUrl != null && imageUrl!.isNotEmpty
+                      ? Image.network(
+                    imageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.person, size: 45, color: Colors.grey),
+                  )
+                      : const Icon(Icons.person, size: 45, color: Colors.grey),
+                ),
               ),
             ],
           ),
+
           const SizedBox(width: 16),
+
+          // Name + Phone
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

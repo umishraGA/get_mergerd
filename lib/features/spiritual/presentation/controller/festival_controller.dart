@@ -22,6 +22,8 @@ class SpiritualFestivalsController extends GetxController {
       isLoading(true);
       errorMessage('');
 
+
+
       final response = await http.get(
         Uri.parse(apiUrl),
         headers: {

@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../utils/dio/auth_helper.dart';
+
 
 class DetailLiveDarshanController extends GetxController {
   var isLoading = true.obs;
@@ -15,20 +17,13 @@ class DetailLiveDarshanController extends GetxController {
     try {
       isLoading.value = true;
 
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString("token");
-
-      if (token == null) {
-        Get.snackbar("Error", "No token found");
-        return;
-      }
 
       final url = Uri.parse('https://api.gamsgroup.in/user/spiritual/hinduism/livedarshan/$darshanId');
 
       final response = await http.get(
         url,
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
           'Content-Type': 'application/json',
         },
       );

@@ -17,7 +17,7 @@ class HinduismController extends GetxController {
   Future<void> fetchSpiritualData() async {
     isLoading.value = true;
     try {
-
+  
       final response = await http.get(
         Uri.parse('https://api.gamsgroup.in/user/spiritual/hinduism'),
         headers: {

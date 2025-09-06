@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:myapp/utils/dio/auth_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../utils/dio/auth_helper.dart';
 
 class CategoryController extends GetxController {
   RxList<Category> categoryList = <Category>[].obs;
@@ -13,7 +12,7 @@ class CategoryController extends GetxController {
   final String baseUrl = "https://api.gamsgroup.in/user/common/get-category";
 
   @override
- void onInit() {
+  void onInit() {
     super.onInit();
     fetchCategories();
   }
@@ -23,6 +22,14 @@ class CategoryController extends GetxController {
     errorMessage.value = '';
 
     try {
+   var token =await AuthHelper.getAuthToken;
+
+      if (token == null) {
+        errorMessage.value = 'Token not found in shared preferences.';
+        isLoading.value = false;
+        return;
+      }
+
       final response = await http.get(
         Uri.parse(baseUrl),
         headers: {
@@ -32,6 +39,7 @@ class CategoryController extends GetxController {
       );
 
       if (response.statusCode == 200) {
+        print("hello new change");
         final body = json.decode(response.body);
         List<dynamic> data = body['data'] as List<dynamic>;
 

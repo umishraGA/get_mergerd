@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 
 class QuizResultScreen extends StatefulWidget {
-  final String type;
+  final String categoryName;
   final int level;
   final int correctAnswers;
   final int totalQuestions;
@@ -15,7 +15,7 @@ class QuizResultScreen extends StatefulWidget {
 
   const QuizResultScreen({
     super.key,
-    required this.type,
+    required this.categoryName,
     required this.level,
     required this.correctAnswers,
     required this.totalQuestions,
@@ -97,11 +97,14 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                 padding: const EdgeInsets.all(24.0),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: MediaQuery.of(context).size.height - 80, // Account for padding
+                    minHeight: MediaQuery.of(context).size.height -
+                        48, // Account for padding
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      const SizedBox(height: 16),
+
                       // Title and name
                       Text(
                         isWin ? 'Well Done !' : 'Good Effort !',
@@ -295,7 +298,7 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                       const SizedBox(height: 16),
 
                       Text(
-                        'Level ${widget.level}',
+                        'Level ${widget.level} of ${widget.categoryName} quiz',
                         style: const TextStyle(
                           fontSize: 18,
                           color: Colors.white,

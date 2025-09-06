@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sms_autofill/sms_autofill.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../service/AuthService.dart';
 import '../../../utils/dio/auth_helper.dart';
 
@@ -17,6 +17,7 @@ class LoginOtpController extends GetxController {
       final response = await _authService.sendLoginOtp(phone);
       
       if (response.statusCode == 200) {
+        // Handle case where response.data might be a String or Map
         final responseData = response.data;
         bool success = false;
         String message = "";
@@ -116,10 +117,8 @@ class LoginOtpController extends GetxController {
           // Use AuthHelper to save authentication data
           if (authData != null) {
             if (authData['token'] != null) {
+              print("snhsdjhs ${authData['token']}");
               await AuthHelper.saveAuthToken(authData['token'].toString());
-            }
-            if (authData['isComplete'] != null) {
-              await AuthHelper.saveProfileCompleted(authData['isComplete'] as bool? ?? false);
             }
             if (authData['refreshToken'] != null) {
               await AuthHelper.saveRefreshToken(authData['refreshToken'].toString());
@@ -166,57 +165,4 @@ class LoginOtpController extends GetxController {
       isLoading.value = false;
     }
   }
-//   ===========================
-
-
-
-
-
-
-  final SmsAutoFill _smsAutoFill = SmsAutoFill();
-  var otpCode = "".obs; // For autofill OTP field
-  var message = "".obs; // For UI message
-
-  @override
-  void onInit() {
-    super.onInit();
-    _listenForSms();
-  }
-
-  void _listenForSms() {
-    try {
-      _smsAutoFill.code.listen((String? code) {
-        if (code != null && code.isNotEmpty) {
-          otpCode.value = code; // Auto-fill OTP field
-          message.value = "Received OTP: $code"; // Show in UI
-        }
-      });
-    } catch (e) {
-      message.value = "Error listening for SMS: $e";
-    }
-  }
-
-  Future<String> getAppSignature() async {
-    try {
-      final sig = await _smsAutoFill.getAppSignature;
-      return sig;
-    } catch (e) {
-      return "Error getting signature: $e";
-    }
-  }
-
-  Future<void> unregister() async {
-    await _smsAutoFill.unregisterListener();
-  }
-
-  @override
-  void onClose() {
-    unregister();
-    super.onClose();
-  }
-
-
-
-
-
 }

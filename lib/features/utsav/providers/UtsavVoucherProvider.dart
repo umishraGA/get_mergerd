@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/UtsavVoucher.dart';
 
 class UtsavVoucherProvider extends ChangeNotifier {
-  // Sample vouchers - in a real app, these would be loaded from API or local image
+  // Sample vouchers - in a real app, these would be loaded from API or local storage
   final List<UtsavVoucher> _availableVouchers = [];
   final List<UtsavVoucher> _claimedVouchers = [];
   final List<UtsavVoucher> _redeemedVouchers = [];

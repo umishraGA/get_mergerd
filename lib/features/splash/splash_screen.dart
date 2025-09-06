@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:myapp/common/navigation/route_manager.dart';
-import 'package:myapp/utils/dio/auth_helper.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  final bool isAuthenticated;
+  const SplashScreen({super.key, required this.isAuthenticated});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -61,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen>
     // After animation completes plus a small delay, navigate to main content
     Timer(const Duration(milliseconds: 3000), () {
       // Navigate to main page if authenticated, otherwise to sign in
-      if (AuthHelper.isAuthenticated) {
+      if (widget.isAuthenticated) {
         Navigator.of(context).pushReplacementNamed(RouteManager.mainPage);
       } else {
         Navigator.of(context).pushReplacementNamed(RouteManager.mainPage);

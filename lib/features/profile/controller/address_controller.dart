@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:myapp/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -32,7 +33,7 @@ class AddressController extends GetxController {
         Uri.parse('$baseUrl$getAddressEndpoint'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6Ijk2NTEzNDI4ODciLCJfaWQiOiI2ODhkZDM5MGM3NDAxMGQ1MzUwYTNhZDUiLCJpYXQiOjE3NTQxMjUyMDAsImV4cCI6MTc1NjcxNzIwMH0.adE1S2WxS_kqaWExyxuSwjnosmLqx7J68NvGUIvjGZU',
+          'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
         },
       );
 
@@ -214,7 +215,7 @@ class AddressModel {
 
   Map<String, dynamic> toJson() {
     return {
-      '_id': id,
+      '_id':id,
       'types': types,
       'deliveryTime': deliveryTime,
       'firstName': firstName,

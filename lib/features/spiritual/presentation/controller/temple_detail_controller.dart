@@ -16,6 +16,7 @@ class TempleDetailController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
+  
       final response = await http.get(
         Uri.parse('https://api.gamsgroup.in/user/spiritual/hinduism/temple/$templeId'),
         headers: {

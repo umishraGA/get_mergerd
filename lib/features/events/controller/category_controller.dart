@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:myapp/utils/dio/auth_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../utils/dio/auth_helper.dart';
 
 class CategoryFilterController extends GetxController {
   var selectedCategory = 'All Events'.obs;
@@ -18,6 +19,9 @@ class CategoryFilterController extends GetxController {
   Future<void> fetchCategories() async {
     try {
       isLoading.value = true;
+
+  
+
       final url = Uri.parse("https://api.gamsgroup.in/user/event/EventCategory");
       final response = await http.get(
         url,

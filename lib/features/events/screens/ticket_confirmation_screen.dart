@@ -68,7 +68,13 @@ class _TicketConfirmationScreenState extends State<TicketConfirmationScreen> {
   // Option 2: Short format
   String _formatDateTime(String dateTimeString) {
     try {
-      final DateTime dateTime = DateTime.parse(dateTimeString);
+      // Parse the string to DateTime
+      DateTime dateTime = DateTime.parse(dateTimeString);
+
+      // Convert to local time
+      dateTime = dateTime.toLocal();
+
+      // Format the DateTime
       return DateFormat('MMM dd, yyyy • hh:mm a').format(dateTime);
     } catch (e) {
       return dateTimeString;
@@ -80,7 +86,7 @@ class _TicketConfirmationScreenState extends State<TicketConfirmationScreen> {
 =====================================
 TICKET CONFIRMATION DETAILS
 =====================================
-Ticket ID: $ticketId
+Ticket ID: $ticketId 
 Ticket Name: $ticketName
 Quantity: $quantity
 Price per Ticket: ₹${ticketPrice.toStringAsFixed(2)}
@@ -117,9 +123,34 @@ Payment Details:
       eventId: eventId,
       ticketId: ticketId,
       quantity: quantity,
-      bookedDate: DateTime.now().toUtc().toIso8601String(),
+      bookedDate: eventDate,
+      // bookedDate: DateTime.now().toUtc().toIso8601String(),
       context: context,
     );
+  }
+
+  void _onBookFreeTicket() {
+    print("""
+=====================================
+BOOKING FREE TICKET
+=====================================
+Free Ticket Details:
+- Customer booking free ticket for $quantity ticket(s)
+- Event: Radio City Joke Studio
+- Ticket Type: $ticketName
+- Ticket ID: $ticketId
+- Event ID: $eventId
+- Event Date: $eventDate
+- Ticket Quantity: $quantity
+- Total Amount: ₹${totalAmount.toStringAsFixed(2)} (Free)
+=====================================
+""");
+    // Call your free ticket booking function herepa
+    paymentController.freeTicketBook(eventId: eventId,
+        tickettype: ticketId,
+        quantity: quantity,
+        bookedDate: eventDate,
+        context: context);
   }
 
   @override
@@ -215,11 +246,11 @@ Payment Details:
                               ),
                             ),
                             Text(
-                              '₹${subTotal.toStringAsFixed(2)}',
-                              style: const TextStyle(
+                              totalAmount == 0 ? 'Free' : '₹${subTotal.toStringAsFixed(2)}',
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
-                                color: Color(0xFFFC6E30),
+                                color: totalAmount == 0 ? Colors.green : Color(0xFFFC6E30),
                                 height: 1.2,
                               ),
                             ),
@@ -283,7 +314,9 @@ Payment Details:
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'ENTRY TICKET FOR ONE (₹${ticketPrice.toStringAsFixed(0)}) : $quantity Ticket(s)',
+                          totalAmount == 0
+                              ? 'FREE ENTRY TICKET FOR ONE : $quantity Ticket(s)'
+                              : 'ENTRY TICKET FOR ONE (₹${ticketPrice.toStringAsFixed(0)}) : $quantity Ticket(s)',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -313,38 +346,40 @@ Payment Details:
                               ),
                             ),
                             Text(
-                              '₹${subTotal.toStringAsFixed(2)}',
-                              style: const TextStyle(
+                              totalAmount == 0 ? 'Free' : '₹${subTotal.toStringAsFixed(2)}',
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
-                                color: Color(0xFFFC6E30),
+                                color: totalAmount == 0 ? Colors.green : Color(0xFFFC6E30),
                                 height: 1.2,
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Booking Fee',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                                height: 1.2,
+                        if (totalAmount > 0) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Booking Fee',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.2,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '₹${bookingFee.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                                height: 1.2,
+                              Text(
+                                '₹${bookingFee.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.2,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -358,33 +393,34 @@ Payment Details:
                   const SizedBox(height: 16),
 
                   // Total Amount
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Total Amount',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            height: 1.2,
+                  if (totalAmount > 0) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Total Amount',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              height: 1.2,
+                            ),
                           ),
-                        ),
-                        Text(
-                          '₹${totalAmount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFFFC6E30),
-                            height: 1.2,
+                          Text(
+                            '₹${totalAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFFFC6E30),
+                              height: 1.2,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
+                  ],
 
                   // Payment Button with Loader
                   Container(
@@ -396,9 +432,15 @@ Payment Details:
                       final bool isLoading = paymentController.isLoading.value;
 
                       return ElevatedButton(
-                        onPressed: isLoading ? null : _onProceedToPay,
+                        onPressed: isLoading
+                            ? null
+                            : totalAmount == 0
+                            ? _onBookFreeTicket
+                            : _onProceedToPay,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE54B4D),
+                          backgroundColor: totalAmount == 0
+                              ? Colors.green
+                              : const Color(0xFFE54B4D),
                           minimumSize: const Size(double.infinity, 52),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(7),
@@ -414,9 +456,9 @@ Payment Details:
                             strokeWidth: 2,
                           ),
                         )
-                            : const Text(
-                          'Proceed to Pay',
-                          style: TextStyle(
+                            : Text(
+                          totalAmount == 0 ? 'Confirm Booking' : 'Proceed to Pay',
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w500,
                             color: Colors.white,

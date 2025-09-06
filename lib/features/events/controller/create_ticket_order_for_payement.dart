@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
+import '../../../utils/dio/auth_helper.dart';
+
 class PaymentController extends GetxController {
   var isLoading = false.obs;
   var orderResponse = {}.obs;
@@ -35,6 +37,51 @@ class PaymentController extends GetxController {
     _razorpay?.clear();
     super.onClose();
   }
+  Future<void> freeTicketBook({
+    required String eventId,
+    required String tickettype,
+    required int quantity,
+    required String bookedDate,
+
+    required BuildContext context,
+  }) async
+  {
+    try {
+      isLoading.value = true;
+
+      var url = Uri.parse("https://api.gamsgroup.in/user/event/book-ticket");
+
+      var body = {
+        "Eventid": eventId,
+        "quantity": quantity,
+        "tickettype": tickettype,
+        "bookeddate": bookedDate,
+
+      };
+
+      var response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${AuthHelper.getAuthToken}",
+        },
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _showSnackBar(context, "Success", "Ticket booked Successfuly");
+
+      } else {
+        print("❌ Failed: ${response.body}");
+        _showSnackBar(context, "Error", "Failed to create order");
+      }
+    } catch (e) {
+      print("❌ Exception: $e");
+      _showSnackBar(context, "Error", "An error occurred while creating order");
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
   Future<void> createPaymentOrder({
     required String eventId,
@@ -48,14 +95,7 @@ class PaymentController extends GetxController {
     try {
       isLoading.value = true;
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString("token");
-
-      if (token == null || token.isEmpty) {
-        _showSnackBar(context, "Error", "Token not found. Please login again.");
-        isLoading.value = false;
-        return;
-      }
+  
 
       if (_razorpay == null) {
         _initializeRazorpay();
@@ -75,7 +115,7 @@ class PaymentController extends GetxController {
         url,
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
+          "Authorization": "Bearer ${AuthHelper.getAuthToken}",
         },
         body: jsonEncode(body),
       );
@@ -187,13 +227,7 @@ class PaymentController extends GetxController {
   }) async
   {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString("token");
-
-      if (token == null || token.isEmpty) {
-        print("❌ Token not found for verification");
-        return;
-      }
+     
 
       var url = Uri.parse("https://api.gamsgroup.in/user/event/verifyPayment");
 
@@ -207,7 +241,7 @@ class PaymentController extends GetxController {
         url,
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
+          "Authorization": "Bearer ${AuthHelper.getAuthToken}",
         },
         body: jsonEncode(body),
       );
@@ -281,62 +315,4 @@ class PaymentController extends GetxController {
   }
 
 
-  Future<void> freeTicketBook({
-    required String eventId,
-    required String ticketId,
-    required int quantity,
-    required String bookedDate,
-    required BuildContext context,
-  }) async
-  {
-    try {
-      isLoading.value = true;
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString("token");
-
-      if (token == null || token.isEmpty) {
-        _showSnackBar(context, "Error", "Token not found. Please login again.");
-        isLoading.value = false;
-        return;
-      }
-
-      if (_razorpay == null) {
-        _initializeRazorpay();
-      }
-
-      var url = Uri.parse("https://api.gamsgroup.in/user/event/book-ticket");
-
-      var body = {
-        "Eventid": eventId,
-        "quantity": quantity,
-        "tickettype": ticketId,
-        "bookeddate": bookedDate,
-
-      };
-
-      var response = await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-        body: jsonEncode(body),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        var data = jsonDecode(response.body);
-        orderResponse.value = data as Map<dynamic, dynamic>;
-
-      } else {
-        print("❌ Failed: ${response.body}");
-        _showSnackBar(context, "Error", "Failed to create order");
-      }
-    } catch (e) {
-      print("❌ Exception: $e");
-      _showSnackBar(context, "Error", "An error occurred while creating order");
-    } finally {
-      isLoading.value = false;
-    }
-  }
 }

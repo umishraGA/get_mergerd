@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:myapp/common/navigation/route_manager.dart';
 import 'package:myapp/features/auth/screens/sign_in_screen.dart';
 import 'package:myapp/features/profile/screens/interest_preferences_screen.dart';
@@ -13,12 +14,24 @@ import 'package:myapp/features/profile/widgets/profile_menu_item.dart';
 import 'package:myapp/utils/dio/auth_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shimmer/shimmer.dart';
 
-class ProfileScreen extends StatelessWidget {
+import '../controller/profile_controller.dart';
+
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final UserDetailsController controller = Get.put(UserDetailsController());
+
+  @override
   Widget build(BuildContext context) {
+    controller.fetchUserDetails();
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -39,15 +52,83 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Obx(() {
+              if (controller.isLoading.value) {
+                // Skeleton loader (shimmer effect)
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          // Circle image placeholder
+                          Shimmer.fromColors(
+                            baseColor: Colors.grey.shade300,
+                            highlightColor: Colors.grey.shade100,
+                            child: const CircleAvatar(
+                              radius: 30,
+                              backgroundColor: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Name placeholder
+                                Shimmer.fromColors(
+                                  baseColor: Colors.grey.shade300,
+                                  highlightColor: Colors.grey.shade100,
+                                  child: Container(
+                                    height: 16,
+                                    width: 150,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                // Phone placeholder
+                                Shimmer.fromColors(
+                                  baseColor: Colors.grey.shade300,
+                                  highlightColor: Colors.grey.shade100,
+                                  child: Container(
+                                    height: 14,
+                                    width: 100,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              if (controller.userData.isEmpty) {
+                return const Center(child: Text("No user data found"));
+              }
+
+              final user = controller.userData;
+
+              final String imageUrl = (user['image'] != null &&
+                      user['image'].toString().isNotEmpty)
+                  ? user['image'].toString()
+                  : "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png";
+
+              return GestureDetector(
+                onTap: () => _navigateToMemberInformation(context),
+                child: ProfileHeader(
+                  name: user['firstName']?.toString() ?? "Unknown",
+                  phone: user['phone']?.toString() ?? "N/A",
+                  isVerified: user['phoneVerified'] as bool,
+                  imageUrl: imageUrl,
+                ),
+              );
+            }),
+
             // Profile Header
-            GestureDetector(
-              onTap: () => _navigateToMemberInformation(context),
-              child: const ProfileHeader(
-                name: 'Sanjay Kumar Rawat',
-                phone: '9856985874',
-                isVerified: true,
-              ),
-            ),
 
             // Silver Buyer Banner
             Container(
@@ -554,9 +635,7 @@ class ProfileScreen extends StatelessWidget {
   void _navigateToInterestPreferences(BuildContext context) async {
     // Navigate to the Interest Preferences screen directly without using named routes
     final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => AddressListView()));
+        context, MaterialPageRoute(builder: (context) => AddressListView()));
 
     // Handle the result if needed
     if (result != null && result is List<String>) {
@@ -601,15 +680,15 @@ class ProfileScreen extends StatelessWidget {
   Future<void> _performLogout(BuildContext context) async {
     // Clear authentication data using AuthHelper
     await AuthHelper.clearAuthData();
-    
+
     // Clear permission status as well
     await AuthHelper.savePermissionStatus(false);
-    
+
     // Clear old showHome preference as well for backward compatibility
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('showHome');
     await prefs.remove('userEmail');
-    
+
     // Navigate to sign in screen and clear all previous routes
     if (context.mounted) {
       Navigator.pushAndRemoveUntil(

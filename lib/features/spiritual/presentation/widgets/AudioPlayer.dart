@@ -18,11 +18,11 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
-  int _selectedTab = 0;
   bool _isLoadingAudio = false;
-  int _playCount = 0; // Track number of completions
+  int _selectedTab = 0;
 
   StreamSubscription<PlayerState>? _playerStateSubscription;
+  StreamSubscription<ProcessingState>? _processingStateSubscription;
 
   @override
   void initState() {
@@ -31,31 +31,26 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
   }
 
   void _setupAudioPlayer() {
-    _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) async {
-      // Handle audio completion
-      if (state.processingState == ProcessingState.completed) {
-        _playCount++;
-        debugPrint('Audio completed. Count: $_playCount');
-
-        // Update chant count on every completion
-         await _updateChantCount();
-
-        // Automatically restart if still in playing state
-        if (_isPlaying) {
-          await _audioPlayer.seek(Duration.zero);
-          await _audioPlayer.play();
-        } else {
-          setState(() {
-            _isPlaying = false;
-          });
-        }
-      }
-
-      // Update playing state
-      if (state.playing && !_isPlaying) {
+    _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) {
+      if (state.playing) {
         setState(() {
           _isPlaying = true;
           _isLoadingAudio = false;
+        });
+      } else {
+        setState(() {
+          _isPlaying = false;
+        });
+      }
+    });
+
+    _processingStateSubscription = _audioPlayer.processingStateStream.listen((state) {
+      if (state == ProcessingState.completed) {
+        debugPrint('Audio completed');
+        _updateChantCount();
+        _audioPlayer.seek(Duration.zero);
+        setState(() {
+          _isPlaying = false;
         });
       }
     });
@@ -63,12 +58,10 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
   Future<void> _updateChantCount() async {
     try {
-      debugPrint('Updating chant count for tab_${_selectedTab + 1}');
       await chantCountController.updateChantCount(
-        religion: "hinduism",
-        chant_tab: "tab_${_selectedTab + 1}",
+        chantTab: "tab_${_selectedTab + 1}",
       );
-      // hinduismController.fetchSpiritualData();
+      await hinduismController.fetchSpiritualData();
     } catch (e) {
       debugPrint('Error updating chant count: $e');
     }
@@ -79,7 +72,6 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
     setState(() {
       _isLoadingAudio = true;
-      _playCount = 0; // Reset play counter when starting new audio
     });
 
     try {
@@ -96,11 +88,17 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
       if (audioUrl.isEmpty) {
         debugPrint('No audio URL found for selected chant');
+        setState(() {
+          _isLoadingAudio = false;
+        });
         return;
       }
 
-      await _audioPlayer.stop();
-      await _audioPlayer.setLoopMode(LoopMode.off); // We'll handle looping manually
+      if (_audioPlayer.processingState == ProcessingState.completed) {
+        await _audioPlayer.seek(Duration.zero);
+      }
+
+      await _audioPlayer.setLoopMode(LoopMode.off);
 
       if (audioUrl.startsWith('http')) {
         await _audioPlayer.setUrl(audioUrl);
@@ -153,6 +151,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
   @override
   void dispose() {
     _playerStateSubscription?.cancel();
+    _processingStateSubscription?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -195,20 +194,16 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                   debugPrint('Error getting image URL: $e');
                 }
 
-                if (imageUrl.startsWith('http')) {
+                // 🔹 Check extension & handle fallback
+                final lowerUrl = imageUrl.toLowerCase();
+                final isSupported = lowerUrl.endsWith('.png') ||
+                    lowerUrl.endsWith('.jpg') ||
+                    lowerUrl.endsWith('.jpeg');
+
+                if (lowerUrl.startsWith('http')) {
                   return Image.network(
-                    imageUrl,
+                    isSupported ? imageUrl : imageUrl.replaceAll('.avif', '.png'),
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: const BorderRadius.all(Radius.circular(10)),
-                        ),
-                        child: const Center(child: CircularProgressIndicator()),
-                      );
-                    },
                     errorBuilder: (context, error, stackTrace) {
                       return Image.asset(
                         'assets/images/spiritual/hanuman.png',
@@ -218,7 +213,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                   );
                 } else {
                   return Image.asset(
-                    imageUrl,
+                    isSupported ? imageUrl : 'assets/images/spiritual/hanuman.png',
                     fit: BoxFit.cover,
                   );
                 }
@@ -233,7 +228,6 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Number counter with reset button
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -255,54 +249,14 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                           color: Colors.white,
                           fontFamily: 'FacebookSans',
                           shadows: [
-                            Shadow(
-                              offset: Offset(1.0, 1.0),
-                              blurRadius: 3.0,
-                              color: Colors.black,
-                            ),
+                            Shadow(offset: Offset(1, 1), blurRadius: 3, color: Colors.black),
                           ],
                         ),
                       );
                     }),
                     const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _updateChantCount,
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.refresh,
-                          size: 16,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
-
-                // Label text
-                Text(
-                  _selectedTab == 0 ? 'Todays Chants' : 'Todays Chalisa',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                    fontFamily: 'FacebookSans',
-                    letterSpacing: 0.5,
-                    shadows: [
-                      Shadow(
-                        offset: Offset(1.0, 1.0),
-                        blurRadius: 2.0,
-                        color: Colors.black,
-                      ),
-                    ],
-                  ),
-                ),
-
                 const SizedBox(height: 16),
 
                 // Start/Stop button
@@ -314,13 +268,6 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                     decoration: BoxDecoration(
                       color: _isLoadingAudio ? Colors.grey : Colors.white,
                       borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 6,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
                     ),
                     child: Center(
                       child: _isLoadingAudio
@@ -335,7 +282,6 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.black,
-                          fontFamily: 'FacebookSans',
                         ),
                       ),
                     ),
@@ -354,7 +300,6 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
               if (hinduismController.isLoading.value) {
                 return const Center(child: CircularProgressIndicator());
               }
-
               if (hinduismController.chants.isEmpty) {
                 return const Center(child: Text("Tabs not available"));
               }
@@ -372,62 +317,44 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                       color: Colors.black.withOpacity(0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
-                    ),
+                    )
                   ],
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.8),
-                    width: 1.5,
-                  ),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(32),
                   child: Row(
-                    children: [
-                      for (int index = 0; index < chantKeys.length; index++)
-                        (() {
-                          final chantKey = chantKeys[index];
-                          final chant = hinduismController.chants[chantKey];
+                    children: List.generate(chantKeys.length, (index) {
+                      final chantKey = chantKeys[index];
+                      final chant = hinduismController.chants[chantKey];
+                      String chantName = 'Chant ${index + 1}';
+                      if (chant is Map && chant['title'] != null) {
+                        chantName = chant['title'].toString();
+                      }
 
-                          String chantName = 'Chant ${index + 1}';
-                          try {
-                            if (chant is Map && chant['title'] != null) {
-                              chantName = chant['title'].toString();
-                            }
-                          } catch (e) {
-                            debugPrint('Error getting chant name: $e');
-                          }
-
-                          return Expanded(
-                            child: GestureDetector(
-                              onTap: () => _changeTab(index),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: _selectedTab == index
-                                      ? Colors.red
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(32),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    chantName,
-                                    style: TextStyle(
-                                      color: _selectedTab == index
-                                          ? Colors.white
-                                          : Colors.black,
-                                      fontSize: 14,
-                                      fontWeight: _selectedTab == index
-                                          ? FontWeight.w600
-                                          : FontWeight.w500,
-                                      fontFamily: 'FacebookSans',
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () => _changeTab(index),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _selectedTab == index ? Colors.red : Colors.white,
+                              borderRadius: BorderRadius.circular(32),
+                            ),
+                            child: Center(
+                              child: Text(
+                                chantName,
+                                style: TextStyle(
+                                  color: _selectedTab == index ? Colors.white : Colors.black,
+                                  fontSize: 14,
+                                  fontWeight: _selectedTab == index
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
                                 ),
                               ),
                             ),
-                          );
-                        })(),
-                    ],
+                          ),
+                        ),
+                      );
+                    }),
                   ),
                 ),
               );

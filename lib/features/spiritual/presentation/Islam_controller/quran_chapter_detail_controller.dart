@@ -14,6 +14,9 @@ class QuranVerseController extends GetxController {
     try {
       isLoading.value = true;
 
+  
+
+
       final url = 'https://api.gamsgroup.in/user/spiritual/islam/quran-chapters/$chapterId?page_no=1';
 
       final response = await http.get(

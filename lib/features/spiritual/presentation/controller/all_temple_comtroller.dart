@@ -40,7 +40,7 @@ class AllTempleController extends GetxController {
     }
 
     try {
-
+  
       final uri = Uri.parse(
         '$baseUrl?page=$pageNo&limit=$pageSize&city_id=$cityId&search=$_search',
       );

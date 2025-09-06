@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../utils/dio/auth_helper.dart';
+
 
 class LiveDarshanController extends GetxController {
   RxList<dynamic> darshanList = <dynamic>[].obs;
@@ -27,14 +29,12 @@ class LiveDarshanController extends GetxController {
       hasMore.value = true;
     }
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString("token");
 
     try {
       final response = await http.get(
         Uri.parse("https://api.gamsgroup.in/user/spiritual/hinduism/livedarshan?page=${currentPage.value}"),
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
           'Content-Type': 'application/json',
         },
       );

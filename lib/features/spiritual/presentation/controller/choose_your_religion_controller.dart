@@ -1,14 +1,17 @@
+
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:myapp/utils/dio/auth_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../../utils/dio/auth_helper.dart';
 
 
 class SpiritualController extends GetxController {
   var religionList = <dynamic>[].obs;
   var isLoading = false.obs;
 
-  final String apiUrl = "https://api.gamsgroup.in/user/spiritual"; // replace with actual URL
+  final String apiUrl = "https://api.gamsgroup.in/user/spiritual";
 
   @override
   void onInit() {
@@ -20,6 +23,8 @@ class SpiritualController extends GetxController {
     isLoading.value = true;
 
     try {
+
+
       final response = await http.get(
         Uri.parse(apiUrl),
         headers: {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../../utils/dio/auth_helper.dart';
 
 class ListingService {
   final http.Client _client;
@@ -9,12 +10,13 @@ class ListingService {
     required String keyword,
     required String userLat,
     required String userLng,
-    required String authToken,
   }) async {
-    final headers = <String, String>{
+
+    final headers = {
       'Content-Type': 'application/json',
-      'Authorization': authToken,
+      'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
     };
+
     final uri = Uri.parse('https://api.gamsgroup.in/user/position/get-position');
     final requestBody = json.encode({
       'keyword': keyword,
@@ -33,26 +35,24 @@ class ListingService {
     }
 
     final decoded = json.decode(response.body);
+
     if (decoded is! Map<String, dynamic>) {
       throw Exception('Unexpected response shape');
     }
 
-    final dynamic statusContainer = decoded['statusCode'];
-    List<dynamic> dataDyn = const [];
-    if (statusContainer is Map<String, dynamic>) {
-      dataDyn = (statusContainer['data'] as List?) ?? const [];
-    } else {
-      // Fallback if API returns data at root
-      dataDyn = (decoded['data'] as List?) ?? const [];
+    List<dynamic> dataDyn = [];
+
+    if (decoded['statusCode'] is Map<String, dynamic> && decoded['statusCode']['data'] is List) {
+      dataDyn = decoded['statusCode']['data'] as List<dynamic>;
+    } else if (decoded['data'] is List) {
+      dataDyn = decoded['data'] as List<dynamic>;
     }
 
-    // Keep only map entries to avoid type errors
     final List<Map<String, dynamic>> maps = dataDyn
         .whereType<Map>()
         .map((e) => e.cast<String, dynamic>())
         .toList();
+
     return maps;
   }
 }
-
-

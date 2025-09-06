@@ -1,9 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart' show CachedNetworkImage;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:myapp/features/common/widgets/BannerCorousal.dart';
 import 'package:myapp/features/utsav/widgets/AppHeader.dart';
+import 'package:shimmer/shimmer.dart';
 import '../controller/aarti_controller.dart';
-import 'detail_aarti_page.dart'; // make sure this is correct path
+import 'detail_aarti_page.dart';
+// make sure this is correct path
 
 class AartiChalisaScreen extends StatefulWidget {
   const AartiChalisaScreen({super.key});
@@ -101,7 +104,8 @@ class _AartiChalisaScreenState extends State<AartiChalisaScreen> {
     );
   }
 
-  Widget _buildDeityCard(String title, String imagePath, {required double itemWidth}) {
+
+  Widget _buildDeityCard(String title, String? imagePath, {required double itemWidth}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -110,10 +114,11 @@ class _AartiChalisaScreenState extends State<AartiChalisaScreen> {
           height: itemWidth,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            image: DecorationImage(
-              image: NetworkImage(imagePath),
-              fit: BoxFit.cover,
-            ),
+            color: Colors.grey[200],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: _buildImage(imagePath, itemWidth),
           ),
         ),
         const SizedBox(height: 8),
@@ -122,16 +127,71 @@ class _AartiChalisaScreenState extends State<AartiChalisaScreen> {
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
-              title,
+              formatTitle(title),
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 14, // You can adjust this
+                fontSize: 14,
               ),
               textAlign: TextAlign.center,
+              maxLines: 2,
             ),
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildImage(String? imageUrl, double size) {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return _placeholderWithIcon(size, icon: Icons.image_not_supported);
+    }
+
+    String optimizedUrl = imageUrl;
+
+    // Convert unsupported formats to JPG
+    if (imageUrl.endsWith('.avif') || imageUrl.endsWith('.webp')) {
+      optimizedUrl = imageUrl.replaceAll(RegExp(r'\.(avif|webp)$'), '.jpg');
+    }
+
+    return CachedNetworkImage(
+      imageUrl: optimizedUrl,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => _shimmerLoader(size),
+      errorWidget: (context, url, error) => _placeholderWithIcon(size, icon: Icons.broken_image),
+    );
+  }
+
+  Widget _shimmerLoader(double size) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        width: size,
+        height: size,
+        color: Colors.white,
+      ),
+    );
+  }
+
+  Widget _placeholderWithIcon(double size, {IconData icon = Icons.image}) {
+    return Container(
+      width: size,
+      height: size,
+      color: Colors.grey[200],
+      child: Center(
+        child: Icon(icon, size: size / 2, color: Colors.grey[400]),
+      ),
+    );
+  }
+
+// Helper function to format titles like "live_darshan" => "Live Darshan"
+  String formatTitle(String title) {
+    return title
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((word) => word.isNotEmpty
+        ? word[0].toUpperCase() + word.substring(1).toLowerCase()
+        : '')
+        .join(' ');
   }
 }

@@ -25,7 +25,7 @@ class DuaController extends GetxController {
     isLoading.value = true;
 
     try {
-
+  
       final response = await http.get(
         Uri.parse('$baseUrl?page_no=$pageNo'),
         headers: {

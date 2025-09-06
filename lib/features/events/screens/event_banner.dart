@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_avif/flutter_avif.dart'; // For AVIF support
 import '../controller/banner_controller.dart';
 
 class EventBannerSlider extends StatefulWidget {
@@ -12,7 +13,6 @@ class EventBannerSlider extends StatefulWidget {
 
 class _EventBannerSliderState extends State<EventBannerSlider> {
   final EventBannerController controller = Get.put(EventBannerController());
-
   final PageController _pageController = PageController();
   int _currentPage = 0;
   Timer? _timer;
@@ -43,32 +43,56 @@ class _EventBannerSliderState extends State<EventBannerSlider> {
     super.dispose();
   }
 
+  /// Returns the appropriate image widget based on URL extension
+  Widget _buildBannerImage(String url) {
+    if (url.toLowerCase().endsWith(".avif")) {
+      return AvifImage.network(
+        url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder: (_, __, ___) =>
+        const Center(child: Icon(Icons.broken_image, size: 50)),
+      );
+    } else {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder: (_, __, ___) =>
+        const Center(child: Icon(Icons.broken_image, size: 50)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Responsive height: 25% of screen height
+    final double bannerHeight = MediaQuery.of(context).size.height * 0.25;
+
     return Obx(() {
       if (controller.isLoading.value) {
-        return const SizedBox(
-          height: 200,
-          child: Center(child: CircularProgressIndicator()),
+        return SizedBox(
+          height: bannerHeight,
+          child: const Center(child: CircularProgressIndicator()),
         );
       }
 
       if (controller.errorMessage.isNotEmpty) {
         return SizedBox(
-          height: 200,
+          height: bannerHeight,
           child: Center(child: Text(controller.errorMessage.value)),
         );
       }
 
       if (controller.banners.isEmpty) {
-        return const SizedBox(
-          height: 200,
-          child: Center(child: Text("No banners found")),
+        return SizedBox(
+          height: bannerHeight,
+          child: const Center(child: Text("No banners found")),
         );
       }
 
       return SizedBox(
-        height: 200,
+        height: bannerHeight,
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
@@ -81,28 +105,22 @@ class _EventBannerSliderState extends State<EventBannerSlider> {
               itemBuilder: (context, index) {
                 final banner = controller.banners[index];
                 return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  margin:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white, width: 3),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
                         color: Colors.black26,
                         blurRadius: 6,
-                        offset: const Offset(0, 3),
+                        offset: Offset(0, 3),
                       ),
                     ],
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      banner.mobBanner,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (_, __, ___) => const Center(
-                        child: Icon(Icons.broken_image, size: 50),
-                      ),
-                    ),
+                    child: _buildBannerImage(banner.mobBanner),
                   ),
                 );
               },
@@ -122,7 +140,7 @@ class _EventBannerSliderState extends State<EventBannerSlider> {
                       color: isActive ? Colors.white : Colors.white54,
                       shape: BoxShape.circle,
                       boxShadow: isActive
-                          ? [BoxShadow(color: Colors.black26, blurRadius: 4)]
+                          ? const [BoxShadow(color: Colors.black26, blurRadius: 4)]
                           : [],
                     ),
                   );

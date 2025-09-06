@@ -1,6 +1,25 @@
-import 'package:myapp/features/auth/screens/sign_up_screen.dart';
+import 'main.dart';
 
-import 'main_widget.dart';
+export 'package:flutter/material.dart';
+export 'package:flutter/services.dart';
+export 'package:flutter_localizations/flutter_localizations.dart';
+export 'package:get/get.dart';
+export 'package:myapp/common/locale/locale_provider.dart';
+export 'package:myapp/common/navigation/route_manager.dart';
+export 'package:myapp/common/responsive/responsive_app.dart';
+export 'package:myapp/common/theme/theme_provider.dart';
+export 'package:myapp/common/theme/themes.dart';
+export 'package:myapp/core/services/audio_service.dart';
+export 'package:myapp/features/auth/screens/sign_in_screen.dart';
+export 'package:myapp/features/mainPage/MainPage.dart';
+export 'package:myapp/features/posts/controller/reaction_controller.dart';
+export 'package:myapp/features/profile/screens/member_information_screen.dart';
+export 'package:myapp/features/profile/screens/profile_page.dart';
+export 'package:myapp/features/splash/splash_screen.dart';
+export 'package:myapp/features/utsav/providers/UtsavVoucherProvider.dart';
+export 'package:myapp/features/utsav/providers/search_provider.dart';
+export 'package:myapp/utils/dio/auth_helper.dart';
+export 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,7 +73,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // AuthHelper.clearAuthData();
     return Consumer2<ThemeProvider, LocaleProvider>(
       builder: (context, themeProvider, localeProvider, child) {
         return GetMaterialApp(
@@ -90,21 +108,13 @@ class MyApp extends StatelessWidget {
                 );
               },
               // Show MainPage if user is authenticated, otherwise show SplashScreen
-              home: const SplashScreen(),
+              home:  SplashScreen(isAuthenticated:  AuthHelper.isFullyOnboarded ,),
               routes: {
-                RouteManager.mainPage: (context) {
-                  if (AuthHelper.isFullyOnboarded) {
-                    if (AuthHelper.getProfileCompleted) {
-                      return const MainPage();
-                    } else {
-                      return const SignUpScreen();
-                    }
-                  } else {
-                    return const SignInScreen();
-                  }
-                },
+                RouteManager.mainPage: (context) =>
+                AuthHelper.isFullyOnboarded ? const MainPage() : const SignInScreen(),
                 RouteManager.profilePage: (context) => const ProfilePage(),
-                RouteManager.memberInformationPage: (context) => const MemberInformationScreen(),
+                RouteManager.memberInformationPage: (context) =>
+                const MemberInformationScreen(),
               },
               onGenerateRoute: RouteManager.generateRoute,
             ),

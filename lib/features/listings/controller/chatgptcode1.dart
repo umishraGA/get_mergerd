@@ -53,7 +53,7 @@
 //       final response = await http.get(
 //         Uri.parse(baseUrl),
 //         headers: {
-//           "Authorization": "Bearer $token",
+//           "Authorization": "Bearer ${AuthHelper.getAuthToken}",
 //           "Content-Type": "application/json",
 //         },
 //       );

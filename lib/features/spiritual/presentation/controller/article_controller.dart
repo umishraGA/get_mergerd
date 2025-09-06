@@ -27,6 +27,7 @@ class ArticleController extends GetxController {
 
     final url = Uri.parse("$baseUrl?page=${pageNo.value}");
     try {
+  
 
       final response = await http.get(
         url,

@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:myapp/utils/dio/auth_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../utils/dio/auth_helper.dart';
 
 class AllEventsController extends GetxController {
   RxBool isLoading = false.obs;
@@ -11,6 +12,10 @@ class AllEventsController extends GetxController {
   Future<void> fetchAllEvents() async {
     try {
       isLoading.value = true;
+
+  
+
+
       const String url = "https://api.gamsgroup.in/user/event/All-events";
 
       var headers = {

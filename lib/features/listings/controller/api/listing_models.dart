@@ -10,6 +10,7 @@ class ListingItemModel {
   final List<BusinessHourModel> businessHours;
   final List<String> keywords;
   final String type; // free, paid, fixed
+  final String vendorId; // 👈 Added vendor ID field
 
   ListingItemModel({
     required this.id,
@@ -23,6 +24,7 @@ class ListingItemModel {
     required this.businessHours,
     required this.keywords,
     required this.type,
+    required this.vendorId, // 👈 Added vendor ID parameter
   });
 
   factory ListingItemModel.fromJson(Map<String, dynamic> json) {
@@ -30,26 +32,26 @@ class ListingItemModel {
     final Map<String, dynamic> basicDetails = _asMap(json['basicDetails']);
     // Some payloads use 'vender' instead of 'vendor'
     final Map<String, dynamic> vendor =
-        _asMap(basicDetails['vendor']).isNotEmpty
-            ? _asMap(basicDetails['vendor'])
-            : _asMap(basicDetails['vender']);
+    _asMap(basicDetails['vendor']).isNotEmpty
+        ? _asMap(basicDetails['vendor'])
+        : _asMap(basicDetails['vender']);
 
     final Map<String, dynamic> companyInfo =
-        _asMap(json['companyInfo']).isNotEmpty
-            ? _asMap(json['companyInfo'])
-            : _asMap(vendor['companyInfo']);
+    _asMap(json['companyInfo']).isNotEmpty
+        ? _asMap(json['companyInfo'])
+        : _asMap(vendor['companyInfo']);
     final Map<String, dynamic> locationInfo =
-        _asMap(json['locationInfo']).isNotEmpty
-            ? _asMap(json['locationInfo'])
-            : _asMap(vendor['locationInfo']);
+    _asMap(json['locationInfo']).isNotEmpty
+        ? _asMap(json['locationInfo'])
+        : _asMap(vendor['locationInfo']);
     final Map<String, dynamic> contactInfo =
-        _asMap(json['contactInfo']).isNotEmpty
-            ? _asMap(json['contactInfo'])
-            : _asMap(vendor['contactInfo']);
+    _asMap(json['contactInfo']).isNotEmpty
+        ? _asMap(json['contactInfo'])
+        : _asMap(vendor['contactInfo']);
     final Map<String, dynamic> logo =
-        _asMap(json['logo']).isNotEmpty
-            ? _asMap(json['logo'])
-            : _asMap(vendor['logo']);
+    _asMap(json['coverImage']).isNotEmpty
+        ? _asMap(json['coverImage'])
+        : _asMap(vendor['coverImage']);
 
     final List<dynamic> hours = _asList(json['businessHours']).isNotEmpty
         ? _asList(json['businessHours'])
@@ -58,6 +60,9 @@ class ListingItemModel {
     final List<dynamic> kws = _asList(json['keywords']).isNotEmpty
         ? _asList(json['keywords'])
         : _asList(vendor['keywords']);
+
+    // Extract vendor ID
+    final String? vendorId = vendor['_id']?.toString();
 
     return ListingItemModel(
       id: (json['_id'] ?? '').toString(),
@@ -69,9 +74,10 @@ class ListingItemModel {
       phoneNo: (contactInfo['phoneNo'] ?? '').toString(),
       logoUrl: (logo['url'] ?? '').toString(),
       businessHours:
-          hours.whereType<Map>().map((e) => BusinessHourModel.fromJson(e.cast<String, dynamic>())).toList(),
+      hours.whereType<Map>().map((e) => BusinessHourModel.fromJson(e.cast<String, dynamic>())).toList(),
       keywords: kws.map((e) => e.toString()).toList(),
       type: (json['type'] ?? '').toString().toLowerCase(),
+      vendorId: vendorId.toString(), // 👈 Added vendor ID
     );
   }
 
@@ -115,5 +121,3 @@ class BusinessHourModel {
     );
   }
 }
-
-

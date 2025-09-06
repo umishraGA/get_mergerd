@@ -29,7 +29,6 @@ class ExampleApiRepository {
           token: response['token'] as String,
           refreshToken: response['refresh_token'] as String?,
           userId: response['user']?['id']?.toString(),
-          isProfileCompleted: response['isComplete'] as bool? ?? false,
         );
       }
 

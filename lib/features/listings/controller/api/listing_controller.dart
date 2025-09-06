@@ -1,4 +1,4 @@
-
+import '../../../../utils/dio/auth_helper.dart';
 import 'listing_models.dart';
 import 'listing_service.dart';
 
@@ -11,14 +11,12 @@ class ListingController {
     required String keyword,
     required String userLat,
     required String userLng,
-    required String authToken,
   }) async {
     try {
-      final list = await _service.searchListings(
+        final list = await _service.searchListings(
         keyword: keyword,
         userLat: userLat,
         userLng: userLng,
-        authToken: authToken,
       );
       final models = list.map((e) => ListingItemModel.fromJson(e)).toList();
       return ListingResult(items: models);
@@ -33,5 +31,3 @@ class ListingResult {
   final String? errorMessage;
   const ListingResult({required this.items, this.errorMessage});
 }
-
-

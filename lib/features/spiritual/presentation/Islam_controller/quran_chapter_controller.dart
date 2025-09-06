@@ -21,6 +21,8 @@ class QuranChapterController extends GetxController {
   Future<void> fetchQuranChapters() async {
     try {
       isLoading.value = true;
+  
+
 
       final response = await http.get(
         Uri.parse(baseUrl),
@@ -71,7 +73,7 @@ class QuranChapterModel {
       sortingNo: int.tryParse(json['sorting_no']?.toString()??"") ?? 0,
       englishName: json['english_chapter_name'] ?.toString()?? '',
       arabicName: json['arabic_chapter_name']?.toString() ?? '',
-      versesList: List<String>.from(json['verses_list'] as Iterable<dynamic>),
+      versesList: List<String>.from(json['verses_list'] as Iterable<dynamic>?? []),
       totalVerses: int.tryParse(json['total_verses']?.toString()??"") ?? 0,
       meaning: json['chapter_name_meaning']?.toString() ?? '',
     );

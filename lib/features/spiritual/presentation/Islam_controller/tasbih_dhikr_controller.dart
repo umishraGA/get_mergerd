@@ -2,6 +2,8 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../../../utils/dio/auth_helper.dart';
 
 class TasbihModel {
@@ -42,8 +44,7 @@ class TasbihController extends GetxController {
   Future<void> fetchTasbihList() async {
     try {
       isLoading.value = true;
-
-      var headers = {
+       var headers = {
         'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
       };
 

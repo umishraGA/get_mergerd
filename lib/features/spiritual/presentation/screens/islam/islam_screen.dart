@@ -19,6 +19,14 @@ class _IslamScreenState extends State<IslamScreen> {
   late String _bannerImage;
   String _selectedPrayer = 'Asr';
   final String _location = 'Lucknow, India';
+  String formatName(String name) {
+    return name
+        .split('_') // split by underscore
+        .map((word) => word.isNotEmpty
+        ? '${word[0].toUpperCase()}${word.substring(1)}'
+        : '')
+        .join(' '); // join words with space
+  }
 
   final Map<String, Map<String, dynamic>> _prayerTimes = {
     'Fajr': {'time': '03:56', 'isSelected': false},
@@ -47,7 +55,7 @@ class _IslamScreenState extends State<IslamScreen> {
 
         return CustomScrollView(
           slivers: [
-            // App Bar with background
+            // App Bar
             SliverAppBar(
               expandedHeight: 280,
               pinned: true,
@@ -56,6 +64,7 @@ class _IslamScreenState extends State<IslamScreen> {
                 background: Image.asset(
                   _bannerImage,
                   fit: BoxFit.cover,
+                  width: double.infinity,
                 ),
               ),
               leading: Padding(
@@ -109,24 +118,29 @@ class _IslamScreenState extends State<IslamScreen> {
                                 fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: _prayerTimes.entries.map((entry) {
-                              final name = entry.key;
-                              final time = entry.value['time'] as String;
-                              final isSelected = name == _selectedPrayer;
-
-                              return _PrayerTimeWidget(
-                                name: name,
-                                time: time,
-                                isSelected: isSelected,
-                                onTap: () {
-                                  setState(() {
-                                    _selectedPrayer = name;
-                                  });
-                                },
-                              );
-                            }).toList(),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: _prayerTimes.entries.map((entry) {
+                                final name = entry.key;
+                                final time = entry.value['time'] as String;
+                                final isSelected = name == _selectedPrayer;
+                                return Padding(
+                                  padding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
+                                  child: _PrayerTimeWidget(
+                                    name: name,
+                                    time: time,
+                                    isSelected: isSelected,
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedPrayer = name;
+                                      });
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            ),
                           ),
                           const SizedBox(height: 16),
                           const Row(
@@ -165,103 +179,111 @@ class _IslamScreenState extends State<IslamScreen> {
                                 fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 8),
-                          GridView.builder(
-                            itemCount: islamController.featuredList.length,
-                            physics: const NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            padding: EdgeInsets.zero,
-                            gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              mainAxisSpacing: 10,
-                              crossAxisSpacing: 10,
-                              childAspectRatio: 1,
-                            ),
-                            itemBuilder: (context, index) {
-                              final item = islamController.featuredList[index];
-
-                              return GestureDetector(
-                                onTap: () {
-                                  final name = item["name"];
-                                  switch (name) {
-                                    case "sifat":
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  AsmaAlHusnaScreen()));
-                                      break;
-                                    case "tasbih":
-                                      Navigator.pushNamed(
-                                          context, "/spiritual/islam/tasbih");
-                                      break;
-                                    case "qibla":
-                                      Navigator.pushNamed(
-                                          context, "/spiritual/islam/qibla");
-                                      break;
-                                    case "dua":
-                                      Navigator.pushNamed(
-                                          context, "/spiritual/islam/duas");
-                                      break;
-                                    case "mosque":
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  MosquesScreen(
-                                                    latitude: 26.838167,
-                                                    longitude: 80.934501,
-                                                  )));
-                                      break;
-                                    case "maqaah_live":
-                                      Navigator.pushNamed(context,
-                                          "/spiritual/islam/makkah-live");
-                                      break;
-                                    case "allah_name":
-                                      Navigator.pushNamed(context,
-                                          "/spiritual/islam/allahNames");
-                                      break;
-                                    case "quran_chapter":
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  QuranChaptersPage()));
-
-                                      break;
-                                    default:
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                "No route found for this feature")),
-                                      );
-                                  }
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.green.shade100),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Image.network(
-                                        item["mobile_image"].toString(),
-                                        width: 80,
-                                        height: 80,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        item["name"].toString(),
-                                        style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500),
-                                      ),
-                                    ],
-                                  ),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              return GridView.builder(
+                                itemCount: islamController.featuredList.length,
+                                physics: const NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                padding: EdgeInsets.zero,
+                                gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  mainAxisSpacing: 10,
+                                  crossAxisSpacing: 10,
+                                  childAspectRatio:
+                                  constraints.maxWidth / (3 * 120),
                                 ),
+                                itemBuilder: (context, index) {
+                                  final item =
+                                  islamController.featuredList[index];
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      final name = item["name"];
+                                      switch (name) {
+                                        case "sifat":
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      AsmaAlHusnaScreen()));
+                                          break;
+                                        case "tasbih":
+                                          Navigator.pushNamed(context,
+                                              "/spiritual/islam/tasbih");
+                                          break;
+                                        case "qibla":
+                                          Navigator.pushNamed(context,
+                                              "/spiritual/islam/qibla");
+                                          break;
+                                        case "dua":
+                                          Navigator.pushNamed(context,
+                                              "/spiritual/islam/duas");
+                                          break;
+                                        case "mosque":
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      MosquesScreen(
+                                                        latitude: 26.838167,
+                                                        longitude: 80.934501,
+                                                      )));
+                                          break;
+                                        case "maqaah_live":
+                                          Navigator.pushNamed(context,
+                                              "/spiritual/islam/makkah-live");
+                                          break;
+                                        case "allah_name":
+                                          Navigator.pushNamed(context,
+                                              "/spiritual/islam/allahNames");
+                                          break;
+                                        case "quran_chapter":
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      QuranChaptersPage()));
+                                          break;
+                                        default:
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content: Text(
+                                                    "No route found for this feature")),
+                                          );
+                                      }
+                                    },
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.green.shade100),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                        MainAxisAlignment.center,
+                                        children: [
+                                          Image.network(
+                                            item["mobile_image"].toString(),
+                                            width: 80,
+                                            height: 80,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            formatName(item["name"].toString()),
+                                            style: const TextStyle(
+                                                fontSize: 14, fontWeight: FontWeight.w500),
+                                            textAlign: TextAlign.center,
+                                            overflow: TextOverflow.ellipsis,
+                                          )
+
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               );
                             },
                           ),
@@ -292,18 +314,26 @@ class _IslamScreenState extends State<IslamScreen> {
                                 Icon(Icons.volunteer_activism,
                                     color: Colors.green.shade600, size: 32),
                                 const SizedBox(height: 8),
-                                const Text(
-                                  'Support Our Mosques',
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87),
+                                Flexible(
+                                  child: Text(
+                                    'Support Our Mosques',
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87),
+                                    textAlign: TextAlign.center,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  'Donate to help Islamic community initiatives',
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.grey),
+                                Flexible(
+                                  child: Text(
+                                    'Donate to help Islamic community initiatives',
+                                    style: TextStyle(
+                                        fontSize: 14, color: Colors.grey),
+                                    textAlign: TextAlign.center,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ],
                             ),

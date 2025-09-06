@@ -6,8 +6,12 @@ import '../screens/JainismScreen.dart';
 import '../screens/SikhismScreen.dart';
 import '../screens/festival_screen.dart';
 import '../screens/hinduism_screen.dart';
+import '../screens/islam/asma_al_husna/asma_al_husna_model.dart';
 import '../screens/islam/asma_al_husna/asma_al_husna_screen.dart';
+import '../screens/islam/asma_al_husna/asma_name_detail_screen.dart';
 import '../screens/islam/donation/donation_screen.dart';
+import '../screens/islam/duas/dua_category_screen.dart';
+import '../screens/islam/duas/dua_detail_screen.dart';
 import '../screens/islam/duas/duas_screen.dart';
 import '../screens/islam/islam_screen.dart';
 import '../screens/islam/makkah_live/makkah_live_screen.dart';
@@ -16,6 +20,7 @@ import '../screens/islam/qibla/qibla_screen.dart';
 import '../screens/islam/tasbih/dhikr_list_screen.dart';
 import '../screens/islam/tasbih/tasbih_screen.dart';
 import '../screens/spiritual_screen.dart';
+import '../screens/temple_detail_screen.dart';
 import '../screens/temples_screen.dart';
 
 class SpiritualRoutes {

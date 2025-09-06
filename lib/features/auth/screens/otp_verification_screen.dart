@@ -114,6 +114,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => SignUpScreen(
+              mobileNumber: widget.mobileNumber,
               verifiedOtp: otp,
             ),
           ),
@@ -178,6 +179,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                   6,
                       (index) => SizedBox(
                     width: 45,
+                    height: 60,
                     child: RawKeyboardListener(
                       focusNode: FocusNode(),
                       onKey: (RawKeyEvent event) {
@@ -195,7 +197,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                         textAlign: TextAlign.center,
                         maxLength: 1,
                         style: const TextStyle(
-                          fontSize: 26,
+                          fontSize: 24,
                           color: Color(0xFF426DB3),
                           fontWeight: FontWeight.bold,
                         ),
@@ -212,7 +214,6 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                 color: Color(0xFF426DB3), width: 2),
                           ),
                           filled: true,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 3, vertical: 10),
                           fillColor: Colors.white,
                         ),
                         inputFormatters: [

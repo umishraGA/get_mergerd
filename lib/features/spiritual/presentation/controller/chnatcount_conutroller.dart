@@ -11,12 +11,13 @@ class ChantCountController extends GetxController {
 
 
 
-  Future<void> updateChantCount({required String religion, required String chant_tab}) async {
+  Future<void> updateChantCount({ required String chantTab}) async {
     isLoading.value = true;
 
     final url = Uri.parse("https://api.gamsgroup.in/user/spiritual/chantCount");
 
     try {
+
 
       final response = await http.put(
         url,
@@ -25,15 +26,15 @@ class ChantCountController extends GetxController {
           "Content-Type": "application/json",
         },
         body: jsonEncode({
-          "religion": religion,
-          "chant_tab": chant_tab,
+          "religion": "hinduism",
+          "chant_tab": chantTab,
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
-
+          print("chant count increase successfully");
         } else {
           Get.snackbar("Error", "Something went wrong");
         }

@@ -110,7 +110,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   Future<void> _loadCurrentUserId() async {
     try {
-      _currentUserId = AuthHelper.getUserId;
+      _currentUserId = await AuthHelper.getUserId;
       debugPrint('Current user ID loaded from AuthHelper: $_currentUserId');
       
       // If no user ID found in AuthHelper, try to extract from token
@@ -125,13 +125,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   Future<String?> _extractUserIdFromToken() async {
     try {
-      final token = await AuthHelper.getAuthToken;
-      if (token == null || token.isEmpty) return null;
-      
+
       // Basic JWT parsing (split by dots and decode payload)
-      final parts = token.split('.');
+      final parts = AuthHelper.getAuthToken.toString().split('.');
       if (parts.length != 3) return null;
-      
+
       // Decode the payload (second part)
       final payload = parts[1];
       // Add padding if needed for proper base64 decoding

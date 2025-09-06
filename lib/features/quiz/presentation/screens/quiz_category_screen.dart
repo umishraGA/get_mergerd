@@ -8,6 +8,8 @@ class QuizCategoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(
@@ -27,26 +29,26 @@ class QuizCategoryScreen extends StatelessWidget {
           // Sample categories
           final categories = [
             {'name': 'Healthcare', 'icon': 'assets/images/healthcare.png'},
-            // {'name': 'Electronics', 'icon': 'assets/images/electronics.png'},
-            // {'name': 'Property', 'icon': 'assets/images/property.png'},
-            // {'name': 'Education', 'icon': 'assets/images/education.png'},
-            // {'name': 'Finance', 'icon': 'assets/images/finance.png'},
-            // {'name': 'Sports', 'icon': 'assets/images/sports.png'},
-            // {'name': 'Food', 'icon': 'assets/images/food.png'},
-            // {'name': 'Travel', 'icon': 'assets/images/travel.png'},
-            // {'name': 'Technology', 'icon': 'assets/images/technology.png'},
+            {'name': 'Electronics', 'icon': 'assets/images/electronics.png'},
+            {'name': 'Property', 'icon': 'assets/images/property.png'},
+            {'name': 'Education', 'icon': 'assets/images/education.png'},
+            {'name': 'Finance', 'icon': 'assets/images/finance.png'},
+            {'name': 'Sports', 'icon': 'assets/images/sports.png'},
+            {'name': 'Food', 'icon': 'assets/images/food.png'},
+            {'name': 'Travel', 'icon': 'assets/images/travel.png'},
+            {'name': 'Technology', 'icon': 'assets/images/technology.png'},
           ];
 
           if (index < categories.length) {
-            return CategoryCard(
+            return CategoryItem(
               icon: categories[index]['icon']!,
-              type: categories[index]['name']!,
+              name: categories[index]['name']!,
             );
           }
 
-          return const CategoryCard(
+          return const CategoryItem(
             icon: 'assets/images/placeholder.png',
-            type: 'Category',
+            name: 'Category',
           );
         },
       ),

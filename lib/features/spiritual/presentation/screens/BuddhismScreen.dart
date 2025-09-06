@@ -241,7 +241,7 @@ class _HinduismScreenState extends State<BuddhismScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Audio Player Section
-                const AudioPlayerWidget(),
+                 AudioPlayerWidget(),
 
                 // Featured section
 

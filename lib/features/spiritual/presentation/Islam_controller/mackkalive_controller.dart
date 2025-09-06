@@ -12,6 +12,8 @@ class MakkaLiveController extends GetxController {
   Future<void> fetchMakkaLiveUrl() async {
     try {
       isLoading.value = true;
+  
+
 
       var headers = {
         'Authorization': 'Bearer ${AuthHelper.getAuthToken}',

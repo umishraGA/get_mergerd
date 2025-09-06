@@ -16,6 +16,7 @@ class DuaDetailController extends GetxController {
     isLoading.value = true;
     final url = Uri.parse("https://api.gamsgroup.in/user/spiritual/islam/dua/$categoryId?page_no=1");
 
+
     try {
       final response = await http.get(
         url,

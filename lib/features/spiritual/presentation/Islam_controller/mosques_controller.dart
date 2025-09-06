@@ -15,7 +15,7 @@ class MosqueController extends GetxController {
     errorMessage.value = '';
 
     try {
-
+  
       final url = Uri.parse("https://api.gamsgroup.in/user/spiritual/islam/mosque?page_no=1&lat=$lat&lon=$lon");
 
       final response = await http.get(

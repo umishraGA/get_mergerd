@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../auth_helper.dart';
+
 class AuthInterceptor extends Interceptor {
   @override
   void onRequest(
@@ -11,7 +13,7 @@ class AuthInterceptor extends Interceptor {
       final token = prefs.getString('auth_token');
 
       if (token != null && token.isNotEmpty) {
-        options.headers['Authorization'] = 'Bearer $token';
+        options.headers['Authorization'] = 'Bearer ${AuthHelper.getAuthToken}';
       }
 
       handler.next(options);

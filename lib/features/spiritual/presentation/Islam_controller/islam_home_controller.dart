@@ -24,6 +24,7 @@ class IslamController extends GetxController {
     try {
       isLoading.value = true;
 
+  
       final response = await http.get(
         Uri.parse(apiUrl),
         headers: {

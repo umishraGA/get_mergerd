@@ -19,6 +19,7 @@ class HinduismCitiesController extends GetxController {
   // Fetch data from API
   Future<void> fetchCities() async {
     try {
+  
       isLoading(true);
       errorMessage('');
 

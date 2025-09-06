@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:myapp/utils/dio/auth_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../utils/dio/auth_helper.dart';
 
 // -------- MODEL --------
 class EventBanner {
@@ -49,6 +50,8 @@ class EventBannerController extends GetxController {
     try {
       isLoading.value = true;
       errorMessage.value = "";
+
+  
 
       // Prepare request body with latitude & longitude
       final body = jsonEncode({

@@ -35,7 +35,7 @@ class AartiController extends GetxController {
     }
 
     try {
-
+  
       final uri = Uri.parse('$baseUrl?page=$pageNo&limit=$pageSize');
       final response = await http.get(
         uri,

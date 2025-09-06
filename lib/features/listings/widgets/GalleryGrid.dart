@@ -1,41 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:myapp/features/listings/views/EnquiryPage.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
+import 'package:url_launcher/url_launcher.dart';
+import 'package:get/get.dart';
+import 'package:myapp/features/listings/controller/vendor_detail_controller.dart';
 
 class GalleryGrid extends StatelessWidget {
-  final List<String>? images;
+  final List<Map<String, dynamic>> businessImages;
   final bool isShowOtherDetails;
   final EdgeInsets padding;
+
   const GalleryGrid({
     super.key,
-    this.images = const [
-      'assets/images/listings/items/food_image.png',
-      'assets/images/listings/items/food_image.png',
-      'assets/images/listings/items/food_image.png',
-      'assets/images/listings/items/food_image.png',
-      'assets/images/listings/items/food_image.png',
-      'assets/images/listings/items/food_image.png',
-      'assets/images/listings/items/food_image.png',
-      'assets/images/listings/items/food_image.png',
-    ],
+    required this.businessImages,
     this.isShowOtherDetails = false,
     this.padding = const EdgeInsets.all(16),
   });
 
   @override
   Widget build(BuildContext context) {
-    // Sample gallery images - used if no images are provided
-    final List<String> galleryImages = images ??
-        [
-          'assets/images/listings/items/food_image.png',
-          'assets/images/listings/items/food_image.png',
-          'assets/images/listings/items/food_image.png',
-          'assets/images/listings/items/food_image.png',
-          'assets/images/listings/items/food_image.png',
-          'assets/images/listings/items/food_image.png',
-          'assets/images/listings/items/food_image.png',
-          'assets/images/listings/items/food_image.png',
-        ];
+    // Use businessImages from API, fallback to default if empty
+    final List<String> imageUrls = businessImages.isNotEmpty
+        ? businessImages
+        .map((image) => image['url']?.toString() ?? '')
+        .where((url) => url.isNotEmpty)
+        .toList()
+        : [
+      'assets/images/listings/items/food_image.png',
+      'assets/images/listings/items/food_image.png',
+      'assets/images/listings/items/food_image.png',
+      'assets/images/listings/items/food_image.png',
+    ];
+
+    if (imageUrls.isEmpty) {
+      return Center(
+        child: Text(
+          'No images available',
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 16,
+          ),
+        ),
+      );
+    }
 
     return Padding(
       padding: padding,
@@ -49,10 +57,10 @@ class GalleryGrid extends StatelessWidget {
         ),
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: galleryImages.length,
+        itemCount: imageUrls.length,
         itemBuilder: (BuildContext context, int index) {
           return _buildGalleryItem(
-            galleryImages[index],
+            imageUrls[index],
             index: index,
             context: context,
           );
@@ -62,34 +70,67 @@ class GalleryGrid extends StatelessWidget {
   }
 
   Widget _buildGalleryItem(
-    String imagePath, {
-    required int index,
-    required BuildContext context,
-  }) {
+      String imageUrl, {
+        required int index,
+        required BuildContext context,
+      }) {
+    // Handle .avif and .webp formats by converting to .jpg
+    String finalUrl = imageUrl;
+    if (imageUrl.endsWith('.avif') || imageUrl.endsWith('.webp')) {
+      finalUrl = imageUrl.replaceAll(RegExp(r'\.(avif|webp)$'), '.jpg');
+    }
+
     return GestureDetector(
       onTap: () {
         // Handle image tap - show full screen view
-        _showFullScreenImage(context, imagePath, index);
+        _showFullScreenImage(context, finalUrl, index);
       },
       child: Hero(
         tag: 'gallery_$index',
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Image.network(
-            imagePath,
+          child: CachedNetworkImage(
+            imageUrl: finalUrl,
             fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: Colors.grey[300],
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (context, url, error) => Container(
+              color: Colors.grey[300],
+              child: const Icon(Icons.broken_image, color: Colors.grey),
+            ),
           ),
         ),
       ),
     );
   }
 
-  void _showFullScreenImage(BuildContext context, String imagePath, int index) {
+  void _showFullScreenImage(BuildContext context, String imageUrl, int index) {
+    // Get all image URLs for the fullscreen viewer
+    final List<String> allImageUrls = businessImages.isNotEmpty
+        ? businessImages
+        .map((image) {
+      String url = image['url']?.toString() ?? '';
+      if (url.endsWith('.avif') || url.endsWith('.webp')) {
+        url = url.replaceAll(RegExp(r'\.(avif|webp)$'), '.jpg');
+      }
+      return url;
+    })
+        .where((url) => url.isNotEmpty)
+        .toList()
+        : [
+      'assets/images/listings/items/food_image.png',
+      'assets/images/listings/items/food_image.png',
+      'assets/images/listings/items/food_image.png',
+      'assets/images/listings/items/food_image.png',
+    ];
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => _FullScreenImageView(
-          images: images ?? [],
+          images: allImageUrls,
           initialIndex: index,
           heroTag: 'gallery_$index',
           isShowOtherDetails: isShowOtherDetails,
@@ -194,7 +235,7 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
   // Handle double tap with smooth animation
   void _handleDoubleTap(BuildContext context, int index) {
     final TransformationController controller =
-        _transformationControllers[index]!;
+    _transformationControllers[index]!;
 
     // Get the screen size
     final Size screenSize = MediaQuery.of(context).size;
@@ -220,59 +261,9 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
     }
   }
 
-  double _calculateMaxScale(BuildContext context, String imagePath) {
-    // Get the screen dimensions
-    final double screenHeight = MediaQuery.of(context).size.height;
-    final double screenWidth = MediaQuery.of(context).size.width;
-
-    // Default max scale - will be used if we can't determine image dimensions
-    double maxScale = 2.0;
-
-    try {
-      // Get the asset image and its dimensions at runtime
-      // This is a simplified approach - in a real app we'd use a more robust method
-      // to get image dimensions, possibly by caching them or using a precached image
-      final AssetImage assetImage = AssetImage(imagePath);
-      final ImageStream stream = assetImage.resolve(ImageConfiguration.empty);
-
-      stream.addListener(ImageStreamListener((ImageInfo info, bool _) {
-        final double imageHeight = info.image.height.toDouble();
-        final double imageWidth = info.image.width.toDouble();
-
-        // Calculate the displayed image size when fit to screen
-        double displayHeight, displayWidth;
-
-        // Calculate aspect ratios
-        final double screenAspect = screenWidth / screenHeight;
-        final double imageAspect = imageWidth / imageHeight;
-
-        if (screenAspect > imageAspect) {
-          // Image is limited by height
-          displayHeight = screenHeight;
-          displayWidth = screenHeight * imageAspect;
-        } else {
-          // Image is limited by width
-          displayWidth = screenWidth;
-          displayHeight = screenWidth / imageAspect;
-        }
-
-        // Limit zoom to fit image height to screen height
-        // This ensures you can't zoom beyond the natural image height
-        maxScale = screenHeight / displayHeight;
-
-        // Ensure max scale is reasonable (not too small or large)
-        maxScale = maxScale.clamp(1.0, 3.0);
-      }));
-    } catch (e) {
-      debugPrint('Error calculating max scale: $e');
-    }
-
-    return maxScale;
-  }
-
   void _ensureImageInBounds(int index) {
     final TransformationController controller =
-        _transformationControllers[index]!;
+    _transformationControllers[index]!;
     final Matrix4 matrix = controller.value;
 
     // Don't do anything if not transformed
@@ -354,6 +345,8 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
 
   @override
   Widget build(BuildContext context) {
+    final VendorDetailController vendorController = Get.find<VendorDetailController>();
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -387,26 +380,29 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                     child: SizedBox.expand(
                       child: InteractiveViewer(
                         transformationController:
-                            _transformationControllers[index],
-                        minScale:
-                            1.0, // Start at 1.0 to prevent going smaller than screen
-                        // Limit max scale based on image dimensions
-                        maxScale: 2.0, // Fixed reasonable max zoom
-                        boundaryMargin: const EdgeInsets.all(
-                            0), // No margin to prevent scrolling beyond bounds
+                        _transformationControllers[index],
+                        minScale: 1.0,
+                        maxScale: 2.0,
+                        boundaryMargin: const EdgeInsets.all(0),
                         clipBehavior: Clip.hardEdge,
                         constrained: true,
-                        panEnabled: true, // Enable panning
-                        scaleEnabled: true, // Enable scaling
+                        panEnabled: true,
+                        scaleEnabled: true,
                         onInteractionEnd: (ScaleEndDetails details) {
                           // Check if we need to snap back to bounds
                           _ensureImageInBounds(index);
                         },
-                        child: Image.network(
-                          widget.images[index],
+                        child: CachedNetworkImage(
+                          imageUrl: widget.images[index],
                           fit: BoxFit.contain,
-                          width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.height,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[800],
+                            child: const Center(child: CircularProgressIndicator()),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: Colors.grey[800],
+                            child: const Icon(Icons.broken_image, color: Colors.white),
+                          ),
                         ),
                       ),
                     ),
@@ -422,7 +418,6 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Left arrow (if not first image)
-
                     GestureDetector(
                       onTap: () {
                         if (_currentIndex > 0) {
@@ -434,22 +429,22 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                       },
                       child: _currentIndex > 0
                           ? Container(
-                              width: 50,
-                              color: Colors.transparent,
-                              alignment: Alignment.center,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.3),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.chevron_left,
-                                  color: Colors.white,
-                                  size: 30,
-                                ),
-                              ),
-                            )
+                        width: 50,
+                        color: Colors.transparent,
+                        alignment: Alignment.center,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.chevron_left,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+                      )
                           : const SizedBox.shrink(),
                     ),
 
@@ -498,10 +493,17 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                       // Close button
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child: const Icon(
-                          Icons.arrow_back,
-                          color: Colors.white,
-                          size: 24,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
                       ),
                       // Page indicator
@@ -530,7 +532,11 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                             color: Colors.black.withOpacity(0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: Container(),
+                          child: const Icon(
+                            Icons.zoom_out_map,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
                       ),
                     ],
@@ -539,7 +545,7 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
               ),
 
             if (widget.isShowOtherDetails)
-              // Bottom clinic details
+            // Bottom clinic details
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -562,9 +568,9 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'SSR Ayurvedic and Panchkarma Clinic',
-                        style: TextStyle(
+                      Text(
+                        vendorController.companyName,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -572,7 +578,7 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Shop No. 51, Shalimar Building, Near Hospital, Sector 18, Noida ,Uttar Pradesh',
+                        vendorController.address,
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.8),
                           fontSize: 14,
@@ -583,12 +589,17 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                         children: [
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                if (vendorController.phone.isNotEmpty) {
+                                  final phoneNumber = "tel:${vendorController.phone}";
+                                  launchUrl(Uri.parse(phoneNumber));
+                                }
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF0F9D58),
                                 foregroundColor: Colors.white,
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
+                                const EdgeInsets.symmetric(vertical: 12),
                                 shape: const RoundedRectangleBorder(
                                   borderRadius: BorderRadius.only(
                                       topLeft: Radius.circular(30),
@@ -613,23 +624,23 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => const EnquiryPage(
-                                            clinicName: 'Jiva Ayurvedic Clinic',
-                                            category: 'Ayurvedic',
-                                            subCategory: 'Clinic',
-                                            businessId: '',
-                                          )),
+                                      builder: (context) => EnquiryPage(
+                                        clinicName: vendorController.companyName,
+                                        category: vendorController.vendorData['businessCategory']?['name']?.toString() ?? '',
+                                        subCategory: vendorController.vendorData['businessNature']?['name']?.toString() ?? '',
+                                        businessId: vendorController.vendorData['_id']?.toString() ?? '',
+                                      )),
                                 );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFFBC02D),
                                 foregroundColor: Colors.black,
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
+                                const EdgeInsets.symmetric(vertical: 12),
                                 elevation: 0,
                                 shape: const RoundedRectangleBorder(
                                   borderRadius:
-                                      BorderRadius.all(Radius.circular(8)),
+                                  BorderRadius.all(Radius.circular(8)),
                                 ),
                               ),
                               child: const Text('Enquiry'),
@@ -638,12 +649,17 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                           const SizedBox(width: 10),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                if (vendorController.latitude != 0 && vendorController.longitude != 0) {
+                                  final mapsUrl = "https://www.google.com/maps/search/?api=1&query=${vendorController.latitude},${vendorController.longitude}";
+                                  launchUrl(Uri.parse(mapsUrl));
+                                }
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF4976C2),
                                 foregroundColor: Colors.white,
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
+                                const EdgeInsets.symmetric(vertical: 12),
                                 shape: const RoundedRectangleBorder(
                                   borderRadius: BorderRadius.only(
                                       topRight: Radius.circular(30),

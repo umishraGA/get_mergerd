@@ -26,6 +26,8 @@ class AllahNamesController extends GetxController {
         isLoadingMore.value = true;
       }
 
+  
+
 
       final response = await http.get(
         Uri.parse("https://api.gamsgroup.in/user/spiritual/islam/allah-name?page_no=$currentPage"),

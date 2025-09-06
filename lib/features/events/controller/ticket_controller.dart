@@ -76,6 +76,7 @@ class BookedTicketController extends GetxController {
     errorMessage.value = '';
 
     try {
+
       final response = await http.post(
         Uri.parse(baseUrl),
         headers: {
