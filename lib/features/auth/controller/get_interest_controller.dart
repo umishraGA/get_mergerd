@@ -33,7 +33,7 @@ class GetInterestController extends GetxController {
       if (response.statusCode == 200) {
         final body = json.decode(response.body);
         final data = body['data'] as List;
-
+print("heloo");
         interestList.value = data.map((item) {
           final id = item['_id'] as Map<String, dynamic>;
           return Interest(

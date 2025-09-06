@@ -24,8 +24,7 @@ class LocationModel {
 
 class LocationController extends GetxController {
   var isLoading = false.obs;
-
-  // Lists for each type
+  // Listps for each type
   var countries = <LocationModel>[].obs;
   var states = <LocationModel>[].obs;
   var cities = <LocationModel>[].obs;
