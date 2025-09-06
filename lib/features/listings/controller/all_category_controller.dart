@@ -39,6 +39,7 @@ class CategoryController extends GetxController {
       );
 
       if (response.statusCode == 200) {
+        print("hello new change");
         final body = json.decode(response.body);
         List<dynamic> data = body['data'] as List<dynamic>;
 
