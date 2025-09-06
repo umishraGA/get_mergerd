@@ -1,0 +1,967 @@
+// import 'package:flutter/material.dart';
+// import 'package:get/get.dart';
+// import 'package:myapp/features/listings/views/EnquiryPage.dart';
+// import 'package:myapp/features/listings/views/ReportIssuePage.dart';
+// import 'package:myapp/features/listings/views/WriteReviewPage.dart';
+// import 'package:myapp/features/listings/widgets/AboutUs.dart';
+// import 'package:myapp/features/listings/widgets/GalleryGrid.dart';
+// import 'package:myapp/features/listings/widgets/ProductsList.dart';
+// import 'package:myapp/features/listings/widgets/ReviewsList.dart';
+// import 'package:myapp/features/posts/widgets/PostCardWidget.dart';
+// import 'package:myapp/features/utsav/widgets/AppHeader.dart';
+// import 'package:myapp/controllers/VendorController.dart'; // Import your controller
+//
+// class ClinicDetailsPage extends StatefulWidget {
+//   final String vendorId; // Add vendorId parameter
+//
+//   const ClinicDetailsPage({
+//     super.key,
+//     required this.vendorId,
+//   });
+//
+//   @override
+//   State<ClinicDetailsPage> createState() => _ClinicDetailsPageState();
+// }
+//
+// class _ClinicDetailsPageState extends State<ClinicDetailsPage>
+//     with TickerProviderStateMixin {
+//   late TabController _tabController;
+//   bool _showingPostDetail = false;
+//   bool _showReportSuccess = false;
+//   bool _clinicFollowState = false;
+//   Map<String, Object> _postDetail = {};
+//   final Map<String, bool> _followStates = {};
+//   final GlobalKey _tabBarKey = GlobalKey();
+//   late AnimationController _transitionController;
+//   late AnimationController _reportNotificationController;
+//
+//   // Get the VendorController instance
+//   final VendorController _vendorController = Get.find<VendorController>();
+//
+//   // Track whether detail is exiting to handle smooth animation
+//   bool _isPostDetailExiting = false;
+//
+//   late Animation<double> _fadeAnimation;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _tabController = TabController(length: 5, vsync: this);
+//     _transitionController = AnimationController(
+//       vsync: this,
+//       duration: const Duration(milliseconds: 250),
+//     );
+//     _reportNotificationController = AnimationController(
+//       vsync: this,
+//       duration: const Duration(milliseconds: 300),
+//     );
+//
+//     // Load vendor data
+//     _loadVendorData();
+//
+//     // Set initial follow state from API data
+//     _clinicFollowState = _vendorController.isFollowed;
+//   }
+//
+//   void _loadVendorData() async {
+//     await _vendorController.fetchVendorDetails(widget.vendorId);
+//     if (mounted) {
+//       setState(() {
+//         _clinicFollowState = _vendorController.isFollowed;
+//       });
+//     }
+//   }
+//
+//   @override
+//   void dispose() {
+//     _tabController.dispose();
+//     _transitionController.dispose();
+//     _reportNotificationController.dispose();
+//     super.dispose();
+//   }
+//
+//   // Show report success notification
+//   void _showReportSuccessNotification() {
+//     setState(() {
+//       _showReportSuccess = true;
+//     });
+//
+//     _reportNotificationController.forward();
+//
+//     // Auto hide after 2 seconds
+//     Future.delayed(const Duration(milliseconds: 2000), () {
+//       if (mounted) {
+//         _reportNotificationController.reverse().then((_) {
+//           setState(() {
+//             _showReportSuccess = false;
+//           });
+//         });
+//       }
+//     });
+//   }
+//
+//   // Helper method to get current day opening hours
+//   String _getCurrentDayHours() {
+//     final today = DateTime.now();
+//     final dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+//     final todayName = dayNames[today.weekday - 1];
+//
+//     final todayHours = _vendorController.getBusinessHoursForDay(todayName);
+//
+//     if (todayHours == null) return 'Hours not available';
+//
+//     if (todayHours['isClosed'] == true) {
+//       return 'Closed today';
+//     }
+//
+//     if (todayHours['isOpen24Hours'] == true) {
+//       return 'Open 24 hours';
+//     }
+//
+//     final openTime = todayHours['openTime']?.toString() ?? '';
+//     final closeTime = todayHours['closeTime']?.toString() ?? '';
+//
+//     if (openTime.isNotEmpty && closeTime.isNotEmpty) {
+//       return 'Opens $openTime • Closes $closeTime';
+//     }
+//
+//     return 'Hours not available';
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     _fadeAnimation = Tween<double>(
+//       begin: 1.0,
+//       end: 0.0,
+//     ).animate(CurvedAnimation(
+//       parent: _transitionController,
+//       curve: Curves.easeOutQuart,
+//       reverseCurve: Curves.easeInQuart,
+//     ));
+//
+//     return Obx(() {
+//       // Show loading indicator while data is being fetched
+//       if (_vendorController.isLoading.value) {
+//         return const Scaffold(
+//           body: Center(
+//             child: CircularProgressIndicator(),
+//           ),
+//         );
+//       }
+//
+//       // Show error message if there's an error
+//       if (_vendorController.errorMessage.value.isNotEmpty) {
+//         return Scaffold(
+//           body: Center(
+//             child: Column(
+//               mainAxisAlignment: MainAxisAlignment.center,
+//               children: [
+//                 Text(
+//                   'Error: ${_vendorController.errorMessage.value}',
+//                   style: const TextStyle(color: Colors.red),
+//                   textAlign: TextAlign.center,
+//                 ),
+//                 const SizedBox(height: 16),
+//                 ElevatedButton(
+//                   onPressed: _loadVendorData,
+//                   child: const Text('Retry'),
+//                 ),
+//               ],
+//             ),
+//           ),
+//         );
+//       }
+//
+//       // Show message if no data is available
+//       if (!_vendorController.hasData) {
+//         return const Scaffold(
+//           body: Center(
+//             child: Text('No vendor data available'),
+//           ),
+//         );
+//       }
+//
+//       return Stack(
+//         children: [
+//           Scaffold(
+//             body: SafeArea(
+//               child: Stack(
+//                 children: [
+//                   AnimatedBuilder(
+//                     animation: _fadeAnimation,
+//                     builder: (context, child) {
+//                       return Opacity(
+//                         opacity: _fadeAnimation.value,
+//                         child: IgnorePointer(
+//                           ignoring: _showingPostDetail,
+//                           child: child,
+//                         ),
+//                       );
+//                     },
+//                     child: Column(
+//                       children: [
+//                         AppHeader(
+//                           title: "",
+//                           showMenu: true,
+//                           showDivider: false,
+//                           onWriteReview: () {
+//                             Navigator.push(
+//                               context,
+//                               MaterialPageRoute(
+//                                 builder: (context) => WriteReviewPage(
+//                                   clinicName: _vendorController.companyName,
+//                                   address: _vendorController.address,
+//                                 ),
+//                               ),
+//                             );
+//                           },
+//                           onReportBusiness: () {
+//                             Navigator.push(
+//                               context,
+//                               MaterialPageRoute(
+//                                 builder: (context) => ReportIssuePage(
+//                                   clinicName: _vendorController.companyName,
+//                                   address: _vendorController.address,
+//                                   onReportSubmitted: () {
+//                                     Navigator.pop(context);
+//                                     _showReportSuccessNotification();
+//                                   },
+//                                 ),
+//                               ),
+//                             );
+//                           },
+//                         ),
+//
+//                         // Scrollable content for image and info
+//                         Expanded(
+//                           child: NestedScrollView(
+//                             headerSliverBuilder: (context, innerBoxIsScrolled) {
+//                               return [
+//                                 SliverToBoxAdapter(
+//                                   child: Column(
+//                                     children: [
+//                                       // Clinic image
+//                                       _buildClinicImage(),
+//
+//                                       // Clinic info section
+//                                       _buildClinicInfo(),
+//                                     ],
+//                                   ),
+//                                 ),
+//                               ];
+//                             },
+//                             body: Column(
+//                               children: [
+//                                 // Tab bar
+//                                 TabBar(
+//                                   tabAlignment: TabAlignment.start,
+//                                   controller: _tabController,
+//                                   labelColor: Colors.black,
+//                                   unselectedLabelColor: Colors.grey,
+//                                   indicatorColor: Colors.red,
+//                                   isScrollable: true,
+//                                   padding: EdgeInsets.zero,
+//                                   labelStyle: const TextStyle(
+//                                     fontSize: 16,
+//                                     fontWeight: FontWeight.w500,
+//                                   ),
+//                                   unselectedLabelStyle: const TextStyle(
+//                                     fontSize: 16,
+//                                     fontWeight: FontWeight.w400,
+//                                   ),
+//                                   labelPadding:
+//                                   const EdgeInsets.symmetric(horizontal: 16),
+//                                   indicatorPadding: EdgeInsets.zero,
+//                                   dividerColor: const Color(0xFFEEEEEE),
+//                                   tabs: const [
+//                                     Tab(text: 'About us'),
+//                                     Tab(text: 'Products'),
+//                                     Tab(text: 'Gallery'),
+//                                     Tab(text: 'Posts'),
+//                                     Tab(text: 'Reviews'),
+//                                   ],
+//                                 ),
+//                                 // Tab content
+//                                 Expanded(
+//                                   child: TabBarView(
+//                                     controller: _tabController,
+//                                     children: [
+//                                       const SingleChildScrollView(
+//                                           child: Aboutus()),
+//                                       SingleChildScrollView(
+//                                           child: _buildProductsTab()),
+//                                       SingleChildScrollView(
+//                                           child: _buildGalleryTab()),
+//                                       _buildPostsTab(),
+//                                       const SingleChildScrollView(
+//                                           child: ReviewsList()),
+//                                     ],
+//                                   ),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                         ),
+//                       ],
+//                     ),
+//                   ),
+//                   if (_showingPostDetail)
+//                     PostCardWidget.buildPostDetailViewFromMap(
+//                       context: context,
+//                       postDetail: _postDetail,
+//                       showingPostDetail: _showingPostDetail,
+//                       isPostDetailExiting: _isPostDetailExiting,
+//                       isFollowingCallback: _isFollowing,
+//                       handleFollowChangedCallback: _handleFollowChanged,
+//                       onDetailBackPressed: () {
+//                         // Start smooth exit animation sequence
+//                         setState(() {
+//                           _isPostDetailExiting = true;
+//                         });
+//
+//                         // Wait for exit animations to complete before changing view state
+//                         Future.delayed(const Duration(milliseconds: 200), () {
+//                           if (mounted) {
+//                             // Reset post detail visibility
+//                             setState(() {
+//                               _showingPostDetail = false;
+//                               _isPostDetailExiting = false; // Reset flag
+//                             });
+//
+//                             // Start the fade animation for the main content
+//                             _transitionController.reverse();
+//                           }
+//                         });
+//                       },
+//                       transitionController: _transitionController,
+//                     ),
+//                 ],
+//               ),
+//             ),
+//             bottomNavigationBar: Container(
+//               decoration: BoxDecoration(
+//                 color: Colors.white,
+//                 boxShadow: [
+//                   BoxShadow(
+//                     color: Colors.black.withOpacity(0.1),
+//                     blurRadius: 6,
+//                     offset: const Offset(0, -2),
+//                   ),
+//                 ],
+//               ),
+//               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+//               child: Row(
+//                 children: [
+//                   Expanded(
+//                     child: ElevatedButton(
+//                       onPressed: _vendorController.phoneNo.isNotEmpty ? () {
+//                         // Handle call functionality
+//                         // You can implement actual calling functionality here
+//                       } : null,
+//                       style: ElevatedButton.styleFrom(
+//                         backgroundColor: const Color(0xFF0F9D58),
+//                         foregroundColor: Colors.white,
+//                         padding: const EdgeInsets.symmetric(vertical: 12),
+//                         shape: const RoundedRectangleBorder(
+//                           borderRadius: BorderRadius.only(
+//                               topLeft: Radius.circular(30),
+//                               bottomLeft: Radius.circular(30)),
+//                         ),
+//                         elevation: 0,
+//                       ),
+//                       child: const Row(
+//                         mainAxisAlignment: MainAxisAlignment.center,
+//                         children: [
+//                           Icon(Icons.call, size: 16),
+//                           SizedBox(width: 8),
+//                           Text('Call'),
+//                         ],
+//                       ),
+//                     ),
+//                   ),
+//                   const SizedBox(width: 10),
+//                   Expanded(
+//                     child: ElevatedButton(
+//                       onPressed: () {
+//                         Navigator.push(
+//                           context,
+//                           MaterialPageRoute(
+//                               builder: (context) => EnquiryPage(
+//                                 clinicName: _vendorController.companyName,
+//                                 category: _vendorController.businessCategory,
+//                                 subCategory: _vendorController.businessNature,
+//                                 businessId: _vendorController.vendorId,
+//                               )),
+//                         );
+//                       },
+//                       style: ElevatedButton.styleFrom(
+//                         backgroundColor: const Color(0xFFFBC02D),
+//                         foregroundColor: Colors.black,
+//                         padding: const EdgeInsets.symmetric(vertical: 12),
+//                         elevation: 0,
+//                         shape: const RoundedRectangleBorder(
+//                           borderRadius: BorderRadius.all(Radius.circular(8)),
+//                         ),
+//                       ),
+//                       child: const Text('Enquiry'),
+//                     ),
+//                   ),
+//                   const SizedBox(width: 10),
+//                   Expanded(
+//                     child: ElevatedButton(
+//                       onPressed: (_vendorController.latitude != 0.0 && _vendorController.longitude != 0.0) ? () {
+//                         // Handle direction functionality
+//                         // You can implement map navigation here
+//                       } : null,
+//                       style: ElevatedButton.styleFrom(
+//                         backgroundColor: const Color(0xFF4976C2),
+//                         foregroundColor: Colors.white,
+//                         padding: const EdgeInsets.symmetric(vertical: 12),
+//                         shape: const RoundedRectangleBorder(
+//                           borderRadius: BorderRadius.only(
+//                               topRight: Radius.circular(30),
+//                               bottomRight: Radius.circular(30)),
+//                         ),
+//                         elevation: 0,
+//                       ),
+//                       child: const Row(
+//                         mainAxisAlignment: MainAxisAlignment.center,
+//                         children: [
+//                           Icon(Icons.directions, size: 16),
+//                           SizedBox(width: 8),
+//                           Text('Direction'),
+//                         ],
+//                       ),
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//             ),
+//           ),
+//
+//           // Report success overlay - positioned outside the Scaffold
+//           if (_showReportSuccess)
+//             AnimatedBuilder(
+//               animation: _reportNotificationController,
+//               builder: (context, child) {
+//                 return Material(
+//                   color: Colors.black
+//                       .withOpacity(0.5 * _reportNotificationController.value),
+//                   child: Center(
+//                     child: Opacity(
+//                       opacity: _reportNotificationController.value,
+//                       child: Container(
+//                         padding: const EdgeInsets.symmetric(
+//                             horizontal: 24, vertical: 12),
+//                         decoration: BoxDecoration(
+//                           color: Colors.black.withOpacity(0.7),
+//                           borderRadius: BorderRadius.circular(8),
+//                         ),
+//                         child: const Text(
+//                           'Report Submitted Successfully',
+//                           style: TextStyle(
+//                             color: Colors.white,
+//                             fontSize: 16,
+//                             fontWeight: FontWeight.w500,
+//                           ),
+//                         ),
+//                       ),
+//                     ),
+//                   ),
+//                 );
+//               },
+//             ),
+//         ],
+//       );
+//     });
+//   }
+//
+//   void _handleFollowChanged(String username, bool isFollowing) {
+//     setState(() {
+//       _followStates[username] = isFollowing;
+//     });
+//   }
+//
+//   bool _isFollowing(String username) {
+//     return _followStates[username] ?? false;
+//   }
+//
+//   Widget _buildClinicImage() {
+//     String imageUrl = _vendorController.coverImageUrl;
+//
+//     return Padding(
+//       padding: const EdgeInsets.symmetric(horizontal: 16),
+//       child: ClipRRect(
+//         borderRadius: BorderRadius.circular(16),
+//         child: imageUrl.isNotEmpty
+//             ? Image.network(
+//           imageUrl,
+//           width: double.infinity,
+//           height: 228,
+//           fit: BoxFit.cover,
+//           errorBuilder: (context, error, stackTrace) {
+//             // Fallback to default image if network image fails
+//             return Image.asset(
+//               'assets/images/listings/items/food_item_horizontal.png',
+//               width: double.infinity,
+//               height: 228,
+//               fit: BoxFit.fill,
+//             );
+//           },
+//           loadingBuilder: (context, child, loadingProgress) {
+//             if (loadingProgress == null) return child;
+//             return Container(
+//               width: double.infinity,
+//               height: 228,
+//               color: Colors.grey[200],
+//               child: const Center(
+//                 child: CircularProgressIndicator(),
+//               ),
+//             );
+//           },
+//         )
+//             : Image.asset(
+//           'assets/images/listings/items/food_item_horizontal.png',
+//           width: double.infinity,
+//           height: 228,
+//           fit: BoxFit.fill,
+//         ),
+//       ),
+//     );
+//   }
+//
+//   Widget _buildRatingItem() {
+//     return Row(children: [
+//       Container(
+//         decoration: BoxDecoration(
+//           borderRadius: BorderRadius.circular(6),
+//           border: Border.all(
+//             width: 1,
+//             color: const Color(0xFF059E54),
+//           ),
+//         ),
+//         child: Row(
+//           children: [
+//             // Star icon with rating (green part)
+//             Container(
+//               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+//               decoration: const BoxDecoration(
+//                 color: Color(0xFF059E54), // Green background
+//                 borderRadius: BorderRadius.only(
+//                   topLeft: Radius.circular(5),
+//                   bottomLeft: Radius.circular(5),
+//                 ),
+//               ),
+//               child: const Row(
+//                 crossAxisAlignment: CrossAxisAlignment.center,
+//                 children: [
+//                   Icon(
+//                     Icons.star,
+//                     color: Colors.white,
+//                     size: 16,
+//                   ),
+//                   SizedBox(width: 2),
+//                   Text(
+//                     '4.3', // You can replace this with actual rating from API if available
+//                     style: TextStyle(
+//                       color: Colors.white,
+//                       fontWeight: FontWeight.bold,
+//                       fontSize: 14,
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//             ),
+//             // Number in white background
+//             Container(
+//               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+//               decoration: const BoxDecoration(
+//                 color: Colors.white,
+//                 borderRadius: BorderRadius.only(
+//                   topRight: Radius.circular(6),
+//                   bottomRight: Radius.circular(6),
+//                 ),
+//               ),
+//               child: const Text(
+//                 '120', // You can replace this with actual review count from API if available
+//                 style: TextStyle(
+//                   color: Colors.black87,
+//                   fontWeight: FontWeight.w500,
+//                   fontSize: 14,
+//                 ),
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//     ]);
+//   }
+//
+//   Widget _buildClinicInfo() {
+//     return Padding(
+//       padding: const EdgeInsets.all(16),
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           // Clinic name
+//           Row(
+//             mainAxisAlignment: MainAxisAlignment.start,
+//             children: [
+//               Expanded(
+//                 child: Text(
+//                   _vendorController.companyName.isNotEmpty
+//                       ? _vendorController.companyName
+//                       : 'Business Name',
+//                   style: const TextStyle(
+//                     fontSize: 20,
+//                     fontWeight: FontWeight.bold,
+//                   ),
+//                 ),
+//               ),
+//               const SizedBox(width: 8),
+//               Icon(
+//                 Icons.verified,
+//                 color: Colors.green[600],
+//                 size: 24,
+//               )
+//             ],
+//           ),
+//           const SizedBox(height: 6),
+//
+//           // Address
+//           Text(
+//             _vendorController.address.isNotEmpty
+//                 ? _vendorController.address
+//                 : 'Address not available',
+//             style: TextStyle(
+//               fontSize: 14,
+//               color: Colors.grey[600],
+//             ),
+//           ),
+//           const SizedBox(height: 16),
+//
+//           // Rating and timing row
+//           Row(
+//             children: [
+//               GestureDetector(
+//                 onTap: _showOpeningHoursModal,
+//                 child: Row(
+//                   children: [
+//                     Text(
+//                       _vendorController.isOpenToday() ? 'Opens' : 'Closed',
+//                       style: TextStyle(
+//                         color: _vendorController.isOpenToday()
+//                             ? Colors.green[600]
+//                             : Colors.red[600],
+//                         fontWeight: FontWeight.w500,
+//                       ),
+//                     ),
+//                     if (_vendorController.isOpenToday())
+//                       Text(' • ${_getCurrentDayHours()}'),
+//                     const SizedBox(width: 4),
+//                     const Icon(Icons.arrow_drop_down,
+//                         size: 18, color: Colors.grey),
+//                   ],
+//                 ),
+//               ),
+//               const Spacer(),
+//               OutlinedButton(
+//                 onPressed: () {
+//                   setState(() {
+//                     _clinicFollowState = !_clinicFollowState;
+//                   });
+//                 },
+//                 style: OutlinedButton.styleFrom(
+//                   foregroundColor: _clinicFollowState
+//                       ? Colors.white
+//                       : const Color(0xFF4976C2),
+//                   backgroundColor: _clinicFollowState
+//                       ? const Color(0xFF4976C2)
+//                       : Colors.transparent,
+//                   side: const BorderSide(color: Color(0xFF4976C2)),
+//                   shape: RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(7),
+//                   ),
+//                   padding:
+//                   const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+//                   minimumSize: const Size(80, 30),
+//                 ),
+//                 child: Text(
+//                   _clinicFollowState ? 'Following' : 'Follow',
+//                   style: TextStyle(
+//                     fontFamily: 'FacebookSans',
+//                     fontWeight: FontWeight.w600,
+//                     fontSize: 14,
+//                     color: _clinicFollowState
+//                         ? Colors.white
+//                         : const Color(0xFF4976C2),
+//                   ),
+//                 ),
+//               ),
+//             ],
+//           ),
+//
+//           const SizedBox(height: 10),
+//           Row(
+//             children: [
+//               _buildRatingItem(),
+//               const SizedBox(width: 8),
+//               Expanded(
+//                 child: DefaultTextStyle(
+//                   style: const TextStyle(
+//                     fontSize: 13,
+//                     color: Colors.black,
+//                     fontWeight: FontWeight.w500,
+//                     overflow: TextOverflow.ellipsis,
+//                   ),
+//                   child: Row(
+//                     mainAxisAlignment: MainAxisAlignment.end,
+//                     children: [
+//                       Text(
+//                         '${_vendorController.followersCount} Followers',
+//                         style: TextStyle(
+//                           color: Colors.red[600],
+//                           fontSize: 12,
+//                           fontWeight: FontWeight.w400,
+//                         ),
+//                       ),
+//                       const SizedBox(width: 8),
+//                       const Flexible(
+//                         child: Text(
+//                           '100 likes', // Keep this hardcoded as API doesn't provide likes
+//                           style: TextStyle(
+//                             fontWeight: FontWeight.w500,
+//                           ),
+//                           maxLines: 1,
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               ),
+//             ],
+//           )
+//         ],
+//       ),
+//     );
+//   }
+//
+//   Widget _buildProductsTab() {
+//     return const ProductsList();
+//   }
+//
+//   Widget _buildGalleryTab() {
+//     return const GalleryGrid(
+//       isShowOtherDetails: true,
+//     );
+//   }
+//
+//   Widget _buildPostsTab() {
+//     // Sample posts data with explicit typing - keeping as hardcoded since API doesn't provide posts
+//     final List<Map<String, Object>> posts = [
+//       {
+//         'profileImage': 'assets/images/story_logo3.png',
+//         'username': 'User Three',
+//         'date': '22 Jan 2025 2:20 pm',
+//         'description': 'New project coming soon! Stay tuned for updates...',
+//         'postImage': 'assets/images/post_image.png',
+//         'likes': 203,
+//         'comments': 54,
+//       },
+//       {
+//         'profileImage': 'assets/images/story_logo1.png',
+//         'username': 'Photo Gallery',
+//         'date': '21 Jan 2025 11:30 am',
+//         'description':
+//         'Swipe through to see all the amazing photos from our latest adventure! Each image tells a different part of the story. #PhotoGallery #Adventure #Memories',
+//         'postImage': 'assets/images/post_image.png',
+//         'mediaType': PostMediaType.multiImage,
+//         'additionalImages': [
+//           'assets/images/post_image.png',
+//           'assets/images/post_image.png',
+//           'assets/images/post_image.png',
+//         ],
+//         'likes': 521,
+//         'comments': 104,
+//       },
+//       {
+//         'profileImage': 'assets/images/story_logo1.png',
+//         'username': 'Happening Bazar',
+//         'date': '21 Jan 2025 11:30 am',
+//         'description':
+//         'Special promotion for this weekend only! Don\'t miss out!',
+//         'postImage': 'assets/images/post_image.png',
+//         'likes': 45,
+//         'comments': 12,
+//       },
+//     ];
+//
+//     return ListView.builder(
+//       padding: const EdgeInsets.only(top: 8, bottom: 16),
+//       itemCount: posts.length,
+//       itemBuilder: (context, index) {
+//         final post = posts[index];
+//         final String postId = post['postImage'].toString().hashCode.toString();
+//         final String username = post['username'] as String;
+//         return PostCardWidget(
+//           key: ValueKey('post-$postId'),
+//           profileImage: post['profileImage'] as String,
+//           username: post['username'] as String,
+//           date: post['date'] as String,
+//           description: post['description'] as String,
+//           postImage: post['postImage'] as String,
+//           likes: post['likes'] as int,
+//           comments: post['comments'] as int,
+//           mediaType: PostMediaType.image,
+//           isFollowing: _isFollowing(username),
+//           onFollowChanged: (isFollowing) =>
+//               _handleFollowChanged(username, isFollowing),
+//           onTap: () {
+//             // Save post detail
+//             setState(() {
+//               _postDetail = {
+//                 ...post,
+//                 'mediaType': post.containsKey('mediaType')
+//                     ? post['mediaType'] as PostMediaType
+//                     : PostMediaType.image,
+//                 'videoPath': post.containsKey('videoPath')
+//                     ? post['videoPath'] as String
+//                     : '',
+//                 'additionalImages': post.containsKey('additionalImages')
+//                     ? (post['additionalImages'] as List<String>)
+//                     : <String>[],
+//               };
+//             });
+//
+//             // Start transition
+//             _transitionController.forward().then((_) {
+//               setState(() {
+//                 _showingPostDetail = true;
+//                 _isPostDetailExiting = false;
+//               });
+//             });
+//           },
+//         );
+//       },
+//     );
+//   }
+//
+//   // Replace the _showOpeningHoursModal method with this
+//   void _showOpeningHoursModal() {
+//     showModalBottomSheet(
+//       context: context,
+//       isScrollControlled: true,
+//       shape: const RoundedRectangleBorder(
+//         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+//       ),
+//       builder: (BuildContext context) {
+//         return Container(
+//           padding:
+//           const EdgeInsets.only(top: 24, left: 24, right: 24, bottom: 32),
+//           decoration: const BoxDecoration(
+//             color: Colors.white,
+//             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+//           ),
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             children: [
+//               Row(
+//                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                 children: [
+//                   const Text(
+//                     'Opening hours',
+//                     style: TextStyle(
+//                       fontSize: 18,
+//                       fontWeight: FontWeight.bold,
+//                       color: Colors.black,
+//                     ),
+//                   ),
+//                   GestureDetector(
+//                     onTap: () => Navigator.pop(context),
+//                     child: const Text(
+//                       'x',
+//                       style: TextStyle(
+//                         fontSize: 22,
+//                         fontWeight: FontWeight.normal,
+//                         color: Colors.black,
+//                       ),
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//               const SizedBox(height: 24),
+//               // Build hours for each day from API data
+//               ..._buildBusinessHoursList(),
+//             ],
+//           ),
+//         );
+//       },
+//     );
+//   }
+//
+//   List<Widget> _buildBusinessHoursList() {
+//     final businessHours = _vendorController.businessHours;
+//     final today = DateTime.now().weekday;
+//     final dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+//     final todayName = dayNames[today - 1];
+//
+//     if (businessHours.isEmpty) {
+//       return [
+//         _buildTimeRow('Monday', 'Hours not available'),
+//         _buildTimeRow('Tuesday', 'Hours not available'),
+//         _buildTimeRow('Wednesday', 'Hours not available'),
+//         _buildTimeRow('Thursday', 'Hours not available'),
+//         _buildTimeRow('Friday', 'Hours not available'),
+//         _buildTimeRow('Saturday', 'Hours not available'),
+//         _buildTimeRow('Sunday', 'Hours not available'),
+//       ];
+//     }
+//
+//     return businessHours.map((dayHour) {
+//       final day = dayHour['day']?.toString() ?? '';
+//       final isToday = day == todayName;
+//       String hours;
+//
+//       if (dayHour['isClosed'] == true) {
+//         hours = 'Closed';
+//       } else if (dayHour['isOpen24Hours'] == true) {
+//         hours = 'Open 24 hours';
+//       } else {
+//         final openTime = dayHour['openTime']?.toString() ?? '';
+//         final closeTime = dayHour['closeTime']?.toString() ?? '';
+//
+//         if (openTime.isNotEmpty && closeTime.isNotEmpty) {
+//           // Convert 24-hour format to 12-hour format for display
+//           hours = '${_formatTime(openTime)} - ${_formatTime(closeTime)}';
+//         } else {
+//           hours = 'Hours not available';
+//         }
+//       }
+//
+//       return _buildTimeRow(day, hours, isHighlighted: isToday);
+//     }).toList();
+//   }
+//
+//   // Helper method to format time from 24-hour to 12-hour format
+//   String _formatTime(String time24) {
+//     try {
+//       final parts = time24.split(':');
+//       if (parts.length != 2) return time24;
+//
+//       final hour = int.parse(parts[0]);
+//       final minute = parts[1];
+//
+//       if (hour == 0) {
+//         return '12:$minute AM';
+//       } else if (hour < 12) {
+//         return '$hour:$minute AM';
+//       } else if (hour == 12) {
+//         return '12:$minute PM';
+//       } else {
+//         return '${hour - 12}:$minute PM';
+//       }
+//     } catch (e) {
+//       return time24; // Return original if parsing fails
+//     }
+//   }

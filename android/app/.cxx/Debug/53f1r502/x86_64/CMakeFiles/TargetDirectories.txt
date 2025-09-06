@@ -1,0 +1,2 @@
+C:/Users/mishr/StudioProjects/Mobile-App/Social-Media/android/app/.cxx/Debug/53f1r502/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/mishr/StudioProjects/Mobile-App/Social-Media/android/app/.cxx/Debug/53f1r502/x86_64/CMakeFiles/rebuild_cache.dir

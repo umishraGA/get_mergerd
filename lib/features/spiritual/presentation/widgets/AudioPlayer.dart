@@ -1,0 +1,367 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:get/get.dart';
+import '../controller/Hinduism_controller.dart';
+import '../controller/chnatcount_conutroller.dart';
+
+class AudioPlayerWidget extends StatefulWidget {
+  const AudioPlayerWidget({super.key});
+
+  @override
+  State<AudioPlayerWidget> createState() => _AudioPlayerWidgetState();
+}
+
+class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
+  final HinduismController hinduismController = Get.put(HinduismController());
+  final ChantCountController chantCountController = Get.put(ChantCountController());
+
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlaying = false;
+  bool _isLoadingAudio = false;
+  int _selectedTab = 0;
+
+  StreamSubscription<PlayerState>? _playerStateSubscription;
+  StreamSubscription<ProcessingState>? _processingStateSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAudioPlayer();
+  }
+
+  void _setupAudioPlayer() {
+    _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) {
+      if (state.playing) {
+        setState(() {
+          _isPlaying = true;
+          _isLoadingAudio = false;
+        });
+      } else {
+        setState(() {
+          _isPlaying = false;
+        });
+      }
+    });
+
+    _processingStateSubscription = _audioPlayer.processingStateStream.listen((state) {
+      if (state == ProcessingState.completed) {
+        debugPrint('Audio completed');
+        _updateChantCount();
+        _audioPlayer.seek(Duration.zero);
+        setState(() {
+          _isPlaying = false;
+        });
+      }
+    });
+  }
+
+  Future<void> _updateChantCount() async {
+    try {
+      await chantCountController.updateChantCount(
+        chantTab: "tab_${_selectedTab + 1}",
+      );
+      await hinduismController.fetchSpiritualData();
+    } catch (e) {
+      debugPrint('Error updating chant count: $e');
+    }
+  }
+
+  Future<void> _initAndPlayAudio() async {
+    if (_isLoadingAudio) return;
+
+    setState(() {
+      _isLoadingAudio = true;
+    });
+
+    try {
+      final chantKeys = hinduismController.chants.keys.toList();
+      if (_selectedTab >= chantKeys.length) return;
+
+      final selectedChantKey = chantKeys[_selectedTab];
+      final chantData = hinduismController.chants[selectedChantKey];
+
+      String audioUrl = '';
+      if (chantData is Map && chantData['audio'] != null) {
+        audioUrl = chantData['audio'].toString();
+      }
+
+      if (audioUrl.isEmpty) {
+        debugPrint('No audio URL found for selected chant');
+        setState(() {
+          _isLoadingAudio = false;
+        });
+        return;
+      }
+
+      if (_audioPlayer.processingState == ProcessingState.completed) {
+        await _audioPlayer.seek(Duration.zero);
+      }
+
+      await _audioPlayer.setLoopMode(LoopMode.off);
+
+      if (audioUrl.startsWith('http')) {
+        await _audioPlayer.setUrl(audioUrl);
+      } else {
+        await _audioPlayer.setAsset(audioUrl);
+      }
+
+      await _audioPlayer.play();
+    } catch (e) {
+      debugPrint('Error playing audio: $e');
+      setState(() {
+        _isPlaying = false;
+        _isLoadingAudio = false;
+      });
+    }
+  }
+
+  Future<void> _stopAudio() async {
+    try {
+      await _audioPlayer.stop();
+      setState(() {
+        _isPlaying = false;
+      });
+    } catch (e) {
+      debugPrint('Error stopping audio: $e');
+    }
+  }
+
+  Future<void> _togglePlayback() async {
+    if (_isPlaying) {
+      await _stopAudio();
+    } else {
+      await _initAndPlayAudio();
+    }
+  }
+
+  void _changeTab(int newTab) async {
+    if (_selectedTab == newTab) return;
+
+    if (_isPlaying) {
+      await _stopAudio();
+    }
+
+    setState(() {
+      _selectedTab = newTab;
+      _isPlaying = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _playerStateSubscription?.cancel();
+    _processingStateSubscription?.cancel();
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isTablet = MediaQuery.of(context).size.width > 600;
+
+    return Container(
+      height: isTablet ? 320 : 220,
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Stack(
+        children: [
+          // Background image
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(10)),
+              child: Obx(() {
+                String imageUrl = 'assets/images/spiritual/hanuman.png';
+                try {
+                  if (hinduismController.chants.isNotEmpty) {
+                    final chantKeys = hinduismController.chants.keys.toList();
+                    if (_selectedTab < chantKeys.length) {
+                      final selectedChantKey = chantKeys[_selectedTab];
+                      final chantData = hinduismController.chants[selectedChantKey];
+                      if (chantData is Map &&
+                          chantData['image'] is Map &&
+                          chantData['image']['mobile_image'] is String &&
+                          (chantData['image']['mobile_image'] as String).isNotEmpty) {
+                        imageUrl = chantData['image']['mobile_image'].toString();
+                      }
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('Error getting image URL: $e');
+                }
+
+                // 🔹 Check extension & handle fallback
+                final lowerUrl = imageUrl.toLowerCase();
+                final isSupported = lowerUrl.endsWith('.png') ||
+                    lowerUrl.endsWith('.jpg') ||
+                    lowerUrl.endsWith('.jpeg');
+
+                if (lowerUrl.startsWith('http')) {
+                  return Image.network(
+                    isSupported ? imageUrl : imageUrl.replaceAll('.avif', '.png'),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        'assets/images/spiritual/hanuman.png',
+                        fit: BoxFit.cover,
+                      );
+                    },
+                  );
+                } else {
+                  return Image.asset(
+                    isSupported ? imageUrl : 'assets/images/spiritual/hanuman.png',
+                    fit: BoxFit.cover,
+                  );
+                }
+              }),
+            ),
+          ),
+
+          // Counter section
+          Positioned(
+            right: isTablet ? 100 : 12,
+            bottom: isTablet ? 100 : 12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Obx(() {
+                      final chantKeys = hinduismController.chants.keys.toList();
+                      String count = '0';
+                      if (_selectedTab < chantKeys.length) {
+                        final selectedChantKey = chantKeys[_selectedTab];
+                        final chantData = hinduismController.chants[selectedChantKey];
+                        if (chantData is Map && chantData['chant_count'] != null) {
+                          count = chantData['chant_count'].toString();
+                        }
+                      }
+                      return Text(
+                        count,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontFamily: 'FacebookSans',
+                          shadows: [
+                            Shadow(offset: Offset(1, 1), blurRadius: 3, color: Colors.black),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Start/Stop button
+                GestureDetector(
+                  onTap: _isLoadingAudio ? null : _togglePlayback,
+                  child: Container(
+                    width: 120,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: _isLoadingAudio ? Colors.grey : Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Center(
+                      child: _isLoadingAudio
+                          ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                          : Text(
+                        _isPlaying ? 'Stop' : 'Start',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Tab selector
+          Positioned(
+            top: 20,
+            left: 0,
+            right: 0,
+            child: Obx(() {
+              if (hinduismController.isLoading.value) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (hinduismController.chants.isEmpty) {
+                return const Center(child: Text("Tabs not available"));
+              }
+
+              final chantKeys = hinduismController.chants.keys.toList();
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(32),
+                  child: Row(
+                    children: List.generate(chantKeys.length, (index) {
+                      final chantKey = chantKeys[index];
+                      final chant = hinduismController.chants[chantKey];
+                      String chantName = 'Chant ${index + 1}';
+                      if (chant is Map && chant['title'] != null) {
+                        chantName = chant['title'].toString();
+                      }
+
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () => _changeTab(index),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _selectedTab == index ? Colors.red : Colors.white,
+                              borderRadius: BorderRadius.circular(32),
+                            ),
+                            child: Center(
+                              child: Text(
+                                chantName,
+                                style: TextStyle(
+                                  color: _selectedTab == index ? Colors.white : Colors.black,
+                                  fontSize: 14,
+                                  fontWeight: _selectedTab == index
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+}
