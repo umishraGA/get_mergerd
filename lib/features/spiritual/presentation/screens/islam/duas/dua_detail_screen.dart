@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 
-class DuaDetailScreen extends StatelessWidget {
-  final String categoryTitle;
-  final String duaTitle;
-  final int duaIndex;
+class DuaDetailScreen extends StatefulWidget {
+  final dua;
 
   const DuaDetailScreen({
     super.key,
-    required this.categoryTitle,
-    required this.duaTitle,
-    required this.duaIndex,
+    required this.dua,
   });
 
   @override
+  State<DuaDetailScreen> createState() => _DuaDetailScreenState();
+}
+
+class _DuaDetailScreenState extends State<DuaDetailScreen> {
+  @override
   Widget build(BuildContext context) {
+    final dua = widget.dua;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -41,12 +44,12 @@ class DuaDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 16),
+             Divider(),
             // Dua title
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
-                duaTitle,
+                dua.titleArabic?.toString() ?? 'No Title',
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w500,
@@ -55,13 +58,14 @@ class DuaDetailScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 32),
 
-            // Arabic text
+            Divider(),
+
+            // Arabic
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
-                _getArabicText(categoryTitle, duaIndex),
+                dua.titleEnglish?.toString() ?? '' ?? '',
                 style: const TextStyle(
                   fontFamily: 'Amiri',
                   fontSize: 28,
@@ -71,13 +75,14 @@ class DuaDetailScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 32),
+
+            Divider(),
 
             // Transliteration
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
-                _getTransliteration(categoryTitle, duaIndex),
+                dua.arabicDua?.toString() ?? '',
                 style: TextStyle(
                   fontSize: 16,
                   height: 1.6,
@@ -87,13 +92,14 @@ class DuaDetailScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 24),
+
+            Divider(),
 
             // Translation
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
-                _getTranslation(categoryTitle, duaIndex),
+                dua.englishDua?.toString() ?? '',
                 style: const TextStyle(
                   fontSize: 16,
                   height: 1.6,
@@ -102,13 +108,14 @@ class DuaDetailScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 16),
+
+            Divider(),
 
             // Reference
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
-                _getReference(categoryTitle, duaIndex),
+                dua.referenceBook?.toString() ?? '',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade600,
@@ -116,9 +123,10 @@ class DuaDetailScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 40),
 
-            // Action buttons
+            Divider(),
+
+            // Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -129,7 +137,7 @@ class DuaDetailScreen extends StatelessWidget {
                     size: 34,
                   ),
                   onPressed: () {
-                    // Play audio
+                    // TODO: Play audio
                   },
                 ),
                 const SizedBox(width: 20),
@@ -140,7 +148,7 @@ class DuaDetailScreen extends StatelessWidget {
                     size: 28,
                   ),
                   onPressed: () {
-                    // Bookmark
+                    // TODO: Bookmark
                   },
                 ),
                 const SizedBox(width: 20),
@@ -151,63 +159,16 @@ class DuaDetailScreen extends StatelessWidget {
                     size: 28,
                   ),
                   onPressed: () {
-                    // Share
+                    // TODO: Share
                   },
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+
+            Divider(),
           ],
         ),
       ),
     );
-  }
-
-  String _getArabicText(String category, int index) {
-    if (category == 'Morning & Evening' && duaTitle == 'Waking Up') {
-      return 'الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ';
-    } else if (category == 'Morning & Evening') {
-      return 'اللَّهُمَّ بِكَ أَصْبَحْنَا وَبِكَ أَمْسَيْنَا، وَبِكَ نَحْيَا وَبِكَ نَمُوتُ وَإِلَيْكَ النُّشُورُ';
-    } else if (category == 'Prayer & Daily Life') {
-      return 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَالْعَجْزِ وَالْكَسَلِ، وَالْبُخْلِ وَالْجُبْنِ، وَضَلَعِ الدَّيْنِ وَغَلَبَةِ الرِّجَالِ';
-    } else {
-      return 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ';
-    }
-  }
-
-  String _getTransliteration(String category, int index) {
-    if (category == 'Morning & Evening' && duaTitle == 'Waking Up') {
-      return 'Alhamdu lillahil-lathee ahyana baAAda ma amatana wa-ilayhin-nushoor.';
-    } else if (category == 'Morning & Evening') {
-      return 'Allahumma bika asbahna wa bika amsayna, wa bika nahya wa bika namutu wa ilaykan-nushur.';
-    } else if (category == 'Prayer & Daily Life') {
-      return 'Allahumma inni a\'udhu bika minal-hammi wal-hazan, wal-\'ajzi wal-kasal, wal-bukhli wal-jubn, wa dala\'id-dayni wa ghalabatir-rijal.';
-    } else {
-      return 'Bismillahir Rahmanir Raheem';
-    }
-  }
-
-  String _getTranslation(String category, int index) {
-    if (category == 'Morning & Evening' && duaTitle == 'Waking Up') {
-      return 'All praise is for Allah who gave us life after having taken it from us and unto Him is the resurrection.';
-    } else if (category == 'Morning & Evening') {
-      return 'O Allah, by You we enter the morning and by You we enter the evening, by You we live and by You we die, and to You is the Resurrection.';
-    } else if (category == 'Prayer & Daily Life') {
-      return 'O Allah, I seek refuge in You from grief and sadness, from weakness and laziness, from miserliness and cowardice, from being overcome by debt and overpowered by men.';
-    } else {
-      return 'In the name of Allah, the Most Beneficent, the Most Merciful.';
-    }
-  }
-
-  String _getReference(String category, int index) {
-    if (category == 'Morning & Evening' && duaTitle == 'Waking Up') {
-      return 'Al-Bukhari 11:113, Muslim 4:2083';
-    } else if (category == 'Morning & Evening') {
-      return 'At-Tirmidhi 5:466';
-    } else if (category == 'Prayer & Daily Life') {
-      return 'Al-Bukhari 7:158';
-    } else {
-      return 'Quran 1:1';
-    }
   }
 }

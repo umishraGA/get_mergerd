@@ -1,30 +1,134 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:myapp/features/utsav/widgets/AppHeader.dart';
 
-import '../models/event_model.dart';
+import '../controller/create_ticket_order_for_payement.dart';
 
-class TicketConfirmationScreen extends StatelessWidget {
-  final Event event;
-  final int quantity;
-  final double ticketPrice;
+class TicketConfirmationScreen extends StatefulWidget {
+  final List<Map<String, dynamic>> ticketData;
+  final double totalPrice;
+  final String eventId;
+  final String eventDate;
+  final String eventTitle;
+  final String eventAddress;
 
   const TicketConfirmationScreen({
     super.key,
-    required this.event,
-    required this.quantity,
-    required this.ticketPrice,
+    required this.ticketData,
+    required this.totalPrice,
+    required this.eventId,
+    required this.eventDate,
+    required this.eventTitle,
+    required this.eventAddress,
   });
 
   @override
-  Widget build(BuildContext context) {
-    const double bookingFee = 66.00; // Fixed booking fee
-    final double subTotal = ticketPrice * quantity;
-    final double totalAmount = subTotal + bookingFee;
+  State<TicketConfirmationScreen> createState() =>
+      _TicketConfirmationScreenState();
+}
 
+class _TicketConfirmationScreenState extends State<TicketConfirmationScreen> {
+  final PaymentController paymentController = Get.put(PaymentController());
+
+  late Map<String, dynamic> ticket;
+  late double ticketPrice;
+  late double subTotal;
+  late double bookingFee;
+  late double totalAmount;
+  late int quantity;
+  late String ticketName;
+  late String ticketId;
+  late String eventId;
+  late String eventDate;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Extract ticket data from the list (assuming first ticket)
+    ticket = widget.ticketData.first;
+
+    // Parse the ticket data
+    ticketId = ticket['ticketId']?.toString() ?? '';
+    ticketName = ticket['ticketName']?.toString() ?? 'PAID TICKETS';
+    quantity = int.parse(ticket['quantity'].toString());
+    ticketPrice = double.parse((ticket['price'] ?? 0).toString());
+    subTotal = double.parse((ticket['totalPrice'] ?? 0).toString());
+    eventId = ticket['eventId']?.toString() ?? '';
+    eventDate = ticket['eventDate']?.toString() ?? '';
+
+    // Calculate booking fee (assuming 18% of subtotal)
+    bookingFee = subTotal * 0.18;
+    totalAmount = subTotal + bookingFee;
+
+    _printTicketInfo();
+  }
+
+  // Option 2: Short format
+  String _formatDateTime(String dateTimeString) {
+    try {
+      final DateTime dateTime = DateTime.parse(dateTimeString);
+      return DateFormat('MMM dd, yyyy • hh:mm a').format(dateTime);
+    } catch (e) {
+      return dateTimeString;
+    }
+  }
+
+  void _printTicketInfo() {
+    print("""
+=====================================
+TICKET CONFIRMATION DETAILS
+=====================================
+Ticket ID: $ticketId
+Ticket Name: $ticketName
+Quantity: $quantity
+Price per Ticket: ₹${ticketPrice.toStringAsFixed(2)}
+Sub-Total: ₹${subTotal.toStringAsFixed(2)}
+Event ID: $eventId
+Event Date: $eventDate
+Booking Fee: ₹${bookingFee.toStringAsFixed(2)}
+Total Amount: ₹${totalAmount.toStringAsFixed(2)}
+=====================================
+""");
+  }
+
+  void _onProceedToPay() {
+    print("""
+=====================================
+PROCEEDING TO PAYMENT
+=====================================
+Payment Details:
+- Customer proceeding to pay for $quantity ticket(s)
+- Event: Radio City Joke Studio
+- Ticket Type: $ticketName
+- Ticket ID: $ticketId
+- Event ID: $eventId
+- Event Date: $eventDate
+- Ticket Quantity: $quantity
+- Amount to be charged: ₹${totalAmount.toStringAsFixed(2)}
+- Breakdown:
+  * Ticket Cost: ₹${subTotal.toStringAsFixed(2)}
+  * Booking Fee: ₹${bookingFee.toStringAsFixed(2)}
+  * Total: ₹${totalAmount.toStringAsFixed(2)}
+=====================================
+""");
+    paymentController.createPaymentOrder(
+      eventId: eventId,
+      ticketId: ticketId,
+      quantity: quantity,
+      bookedDate: DateTime.now().toUtc().toIso8601String(),
+      context: context,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.white,
-        appBar: null,
-        body: Column(children: [
+      backgroundColor: Colors.white,
+      appBar: null,
+      body: Column(
+        children: [
           const AppHeader(title: "Ticket Confirmation"),
           Expanded(
             child: SingleChildScrollView(
@@ -90,9 +194,9 @@ class TicketConfirmationScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Radio City Joke Studio',
-                          style: TextStyle(
+                        Text(
+                          widget.eventTitle,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w500,
                             height: 1.2,
@@ -103,7 +207,7 @@ class TicketConfirmationScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '$quantity Ticket',
+                              '$quantity Ticket${quantity > 1 ? 's' : ''}',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
@@ -111,7 +215,7 @@ class TicketConfirmationScreen extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '₹${ticketPrice.toStringAsFixed(2)}',
+                              '₹${subTotal.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
@@ -140,7 +244,7 @@ class TicketConfirmationScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Sat, 22 Mar, 2025',
+                          _formatDateTime(widget.eventDate),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w400,
@@ -149,18 +253,9 @@ class TicketConfirmationScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          '05:00 PM',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.grey[600],
-                            height: 1.2,
-                          ),
-                        ),
                         const SizedBox(height: 24),
                         Text(
-                          'Venue Ekana',
+                          widget.eventAddress,
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey[600],
@@ -169,15 +264,6 @@ class TicketConfirmationScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          'Statium: Banglore',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                            height: 1.2,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -197,10 +283,20 @@ class TicketConfirmationScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'ENTRY TICKET FOR ONE (${ticketPrice.toStringAsFixed(0)}) : $quantity Ticket(s)',
+                          'ENTRY TICKET FOR ONE (₹${ticketPrice.toStringAsFixed(0)}) : $quantity Ticket(s)',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Ticket Type: $ticketName',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.grey[600],
                             height: 1.2,
                           ),
                         ),
@@ -290,31 +386,44 @@ class TicketConfirmationScreen extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
+                  // Payment Button with Loader
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: const BoxDecoration(
                       color: Colors.white,
                     ),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Handle payment
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE54B4D),
-                        minimumSize: const Size(double.infinity, 52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(7),
+                    child: Obx(() {
+                      final bool isLoading = paymentController.isLoading.value;
+
+                      return ElevatedButton(
+                        onPressed: isLoading ? null : _onProceedToPay,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE54B4D),
+                          minimumSize: const Size(double.infinity, 52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          disabledBackgroundColor: Colors.grey[400],
                         ),
-                      ),
-                      child: const Text(
-                        'Proceed to Pay',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
+                        child: isLoading
+                            ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                            : const Text(
+                          'Proceed to Pay',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    }),
                   ),
 
                   // Bottom padding for the button
@@ -323,6 +432,8 @@ class TicketConfirmationScreen extends StatelessWidget {
               ),
             ),
           ),
-        ]));
+        ],
+      ),
+    );
   }
 }

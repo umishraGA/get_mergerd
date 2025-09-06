@@ -1,81 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../Islam_controller/mosques_controller.dart';
 
 class MosquesScreen extends StatefulWidget {
-  const MosquesScreen({super.key});
+  final double latitude;
+  final double longitude;
+
+  const MosquesScreen({super.key, required this.latitude, required this.longitude});
 
   @override
   State<MosquesScreen> createState() => _MosquesScreenState();
 }
 
 class _MosquesScreenState extends State<MosquesScreen> {
-  final List<Map<String, dynamic>> _mosques = [
-    {
-      'name': 'Masjid-e-Gulzar',
-      'location': 'Gulzar Colony (Chinhat)',
-      'distance': 0.238,
-    },
-    {
-      'name': 'Hamza Al Tahid',
-      'location': 'India',
-      'distance': 3.1,
-    },
-    {
-      'name': 'Mosque @ Munshipulia',
-      'location': 'Munshipulia (Indiranagar)',
-      'distance': 3.8,
-    },
-    {
-      'name': 'Asifi Masjid',
-      'location': 'Mashakganj (226018)',
-      'distance': 4.7,
-    },
-    {
-      'name': 'Mohammadi Mosque',
-      'location': 'kursi ry',
-      'distance': 7.6,
-    },
-    {
-      'name': 'Noorani Masjid',
-      'location': 'Adil Nagar',
-      'distance': 7.9,
-    },
-    {
-      'name': 'Masjid Rahmaniya',
-      'location': 'Aminabad',
-      'distance': 10.7,
-    },
-    {
-      'name': 'Masjeed Taj Muhammad',
-      'location': 'Aminabad',
-      'distance': 10.8,
-    },
-    {
-      'name': 'Khamman Peer Mazaar',
-      'location': 'Lucknow',
-      'distance': 11.0,
-    },
-    {
-      'name': 'zama masjid,lucknow',
-      'location': 'India',
-      'distance': 11.1,
-    },
-    {
-      'name': 'Tilewali Masjid',
-      'location': 'Lucknow 226003',
-      'distance': 11.6,
-    },
-    {
-      'name': 'Badi Masjeed',
-      'location': 'Badi Masjeed (Sarvodaya Nagar)',
-      'distance': 11.6,
-    },
-    {
-      'name': 'Ek Minara Masjid',
-      'location': 'Lucknow 226007',
-      'distance': 12.2,
-    },
-  ];
+  final MosqueController mosqueController = Get.put(MosqueController());
+
+  @override
+  void initState() {
+    super.initState();
+    mosqueController.fetchMosques(lat: widget.latitude, lon: widget.longitude);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,82 +55,58 @@ class _MosquesScreenState extends State<MosquesScreen> {
               size: 24,
             ),
             onPressed: () {
-              // Show map view
+              // Optional: Open a general map view
             },
           ),
         ],
       ),
-      body: ListView.separated(
-        itemCount: _mosques.length,
-        separatorBuilder: (context, index) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final mosque = _mosques[index];
-          return MosqueListItem(
-            name: mosque['name'] as String,
-            location: mosque['location'] as String,
-            distance: mosque['distance'] as double,
+      body: Obx(() {
+        if (mosqueController.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (mosqueController.errorMessage.isNotEmpty) {
+          return Center(
+            child: Text(
+              mosqueController.errorMessage.value,
+              style: const TextStyle(color: Colors.red),
+            ),
           );
-        },
-      ),
-    );
-  }
-}
+        }
 
-class MosqueListItem extends StatelessWidget {
-  final String name;
-  final String location;
-  final double distance;
+        if (mosqueController.mosqueList.isEmpty) {
+          return const Center(child: Text("No mosques found."));
+        }
 
-  const MosqueListItem({
-    super.key,
-    required this.name,
-    required this.location,
-    required this.distance,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    String distanceText;
-    if (distance < 1) {
-      distanceText = '${(distance * 1000).toInt()} m';
-    } else {
-      distanceText = '${distance.toStringAsFixed(1)} km';
-    }
-
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: SvgPicture.asset(
-        'assets/images/spiritual/islam/mosque_icon.svg',
-        width: 32,
-        height: 32,
-        colorFilter: const ColorFilter.mode(Colors.green, BlendMode.srcIn),
-      ),
-      title: Text(
-        name,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
-      ),
-      subtitle: Text(
-        location,
-        style: TextStyle(
-          fontSize: 14,
-          color: Colors.grey.shade500,
-        ),
-      ),
-      trailing: Text(
-        distanceText,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Colors.green,
-        ),
-      ),
-      onTap: () {
-        // Navigate to mosque detail or open in maps
-      },
+        return ListView.builder(
+          itemCount: mosqueController.mosqueList.length,
+          itemBuilder: (context, index) {
+            MosqueModel mosque = mosqueController.mosqueList[index];
+            return Card(
+              margin: const EdgeInsets.all(10),
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: ListTile(
+                leading: const Icon(Icons.mosque, color: Colors.green),
+                title: Text(mosque.name),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("${mosque.area}, ${mosque.city}"),
+                  ],
+                ),
+                trailing: Text("${mosque.distance.toStringAsFixed(2)} km"),
+                onTap: () {
+                  final lat = mosque.latitude;
+                  final lon = mosque.longitude;
+                  final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon');
+                  launchUrl(url, mode: LaunchMode.externalApplication);
+                },
+              ),
+            );
+          },
+        );
+      }),
     );
   }
 }

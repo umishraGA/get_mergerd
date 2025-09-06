@@ -6,7 +6,7 @@ import 'package:myapp/features/listings/widgets/AboutUs.dart';
 import 'package:myapp/features/listings/widgets/GalleryGrid.dart';
 import 'package:myapp/features/listings/widgets/ProductsList.dart';
 import 'package:myapp/features/listings/widgets/ReviewsList.dart';
-import 'package:myapp/features/mainPage/widgets/PostCardWidget.dart';
+import 'package:myapp/features/posts/widgets/PostCardWidget.dart';
 import 'package:myapp/features/utsav/widgets/AppHeader.dart';
 
 class ClinicDetailsPage extends StatefulWidget {
@@ -218,7 +218,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage>
                   ),
                 ),
                 if (_showingPostDetail)
-                  PostCardWidget.buildPostDetailView(
+                  PostCardWidget.buildPostDetailViewFromMap(
                     context: context,
                     postDetail: _postDetail,
                     showingPostDetail: _showingPostDetail,
@@ -301,6 +301,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage>
                                   clinicName: 'Jiva Ayurvedic Clinic',
                                   category: 'Ayurvedic',
                                   subCategory: 'Clinic',
+                                  businessId: '',
                                 )),
                       );
                     },

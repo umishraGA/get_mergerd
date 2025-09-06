@@ -7,12 +7,14 @@ class Bannercorousal extends StatefulWidget {
   final List<String>? imagePaths;
   final double height;
   final EdgeInsetsGeometry? margin;
+  final void Function(int index)? onBannerTap;
 
   const Bannercorousal({
     super.key,
     this.imagePaths,
-    this.height = 160,
+    this.height = 140,
     this.margin,
+    this.onBannerTap,
   });
 
   @override
@@ -22,7 +24,7 @@ class Bannercorousal extends StatefulWidget {
 class _BannercorousalState extends State<Bannercorousal>
     with SingleTickerProviderStateMixin {
   late final PageController _pageController;
-  late final List<String> _bannerImages;
+  List<String> _bannerImages = [];
   int _currentPage = 1000;
   Timer? _autoScrollTimer;
   bool _isUserInteracting = false;
@@ -82,6 +84,16 @@ class _BannercorousalState extends State<Bannercorousal>
   }
 
   @override
+  void didUpdateWidget(Bannercorousal oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imagePaths != widget.imagePaths) {
+      setState(() {
+        _bannerImages = widget.imagePaths ?? defaultBanners;
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _autoScrollTimer?.cancel();
     _pageController.dispose();
@@ -129,15 +141,20 @@ class _BannercorousalState extends State<Bannercorousal>
                   ),
                 );
               },
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 6),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: UtsavOfferBanner(
-                    imagePath: _bannerImages[adjustedIndex],
+              child: GestureDetector(
+                onTap: widget.onBannerTap != null
+                    ? () => widget.onBannerTap!(adjustedIndex)
+                    : null,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: UtsavOfferBanner(
+                      imagePath: _bannerImages[adjustedIndex],
+                    ),
                   ),
                 ),
               ),
@@ -148,3 +165,4 @@ class _BannercorousalState extends State<Bannercorousal>
     );
   }
 }
+

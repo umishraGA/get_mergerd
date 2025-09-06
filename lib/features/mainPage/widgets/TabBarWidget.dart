@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class TabBarWidget extends StatefulWidget {
-  const TabBarWidget({super.key});
+  final Function(bool)? onTabChanged;
+  
+  const TabBarWidget({super.key, this.onTabChanged});
 
   @override
   State<TabBarWidget> createState() => _TabBarWidgetState();
@@ -40,6 +42,8 @@ class _TabBarWidgetState extends State<TabBarWidget> {
           setState(() {
             _selectedTab = index;
           });
+          // Call the callback with true if Following tab (index 1), false for For you tab (index 0)
+          widget.onTabChanged?.call(index == 1);
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),

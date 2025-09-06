@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:myapp/main_widget.dart';
 
 import '../controller/create_account_controller.dart';
 import 'profile_completion_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
-  final String? mobileNumber;
   final String? verifiedOtp;
 
   const SignUpScreen({
     super.key,
-    this.mobileNumber,
     this.verifiedOtp,
   });
 
@@ -38,8 +37,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _isLoading = false;
 
     // Pre-fill mobile number if provided
-    if (widget.mobileNumber != null) {
-      _mobileController.text = widget.mobileNumber!;
+    if (AuthHelper.getUserNumber != null) {
+      _mobileController.text = AuthHelper.getUserNumber ?? "";
     }
   }
 
@@ -104,26 +103,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 16.0, top: 8.0),
-            child: IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.arrow_back,
-                    color: Color(0xFF426DB3), size: 20),
+          leading: AuthHelper.getProfileCompleted == false ? null :
+          GestureDetector(
+            onTap: ()=> Navigator.pop(context),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              onPressed: () => Navigator.pop(context),
+              child: const Icon(Icons.arrow_back,
+                  color: Color(0xFF426DB3), size: 20),
             ),
           ),
         ),
@@ -328,7 +326,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                           child: TextFormField(
                             controller: _mobileController,
-                            enabled: widget.mobileNumber == null,
+                            enabled: AuthHelper.getUserNumber == null,
+                            enableSuggestions: true,
+                            autofillHints: const [
+                              AutofillHints.telephoneNumber,
+                            ],
                             decoration: InputDecoration(
                               labelText: 'Mobile Number',
                               hintText: 'Enter 10-digit mobile number',
@@ -341,7 +343,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 borderSide: BorderSide.none,
                               ),
                               filled: true,
-                              fillColor: widget.mobileNumber != null
+                              fillColor: AuthHelper.getUserNumber != null
                                   ? Colors.grey.shade50
                                   : Colors.white,
                               contentPadding: const EdgeInsets.symmetric(
@@ -519,7 +521,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () => Navigator.pop(context),
+                        onTap: () => Get.to(()=> const SignInScreen()),
                         child: const Text(
                           'Sign In',
                           style: TextStyle(

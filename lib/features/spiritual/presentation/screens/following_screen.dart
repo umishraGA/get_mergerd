@@ -73,11 +73,8 @@ class _FollowingScreenState extends State<FollowingScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => TempleDetailScreen(
-              templeName: temple['name'] as String,
-              location: temple['location'] as String,
-              imagePath: temple['image'] as String,
-              description: 'Temple description goes here.',
-              followers: 1100,
+              templeId: temple['_id'] as String,
+
             ),
           ),
         );

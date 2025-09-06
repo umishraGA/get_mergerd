@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../utils/PlaceholderGenerator.dart';
 import 'AssetImageCache.dart';
@@ -14,7 +15,7 @@ class UtsavOfferBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Debug print to verify banner path
-    print('Building banner with image path: $imagePath');
+    // print('Building banner with image path: $imagePath');
     final isTablet = MediaQuery.of(context).size.width > 600;
 
     // Get screen size for placeholder dimensions
@@ -56,9 +57,35 @@ class UtsavOfferBanner extends StatelessWidget {
           return _buildPlaceholder(width, height);
         },
       );
+    } else if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // Handle network images
+      return CachedNetworkImage(
+        imageUrl: imagePath,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF426DB3)),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) {
+          print('Error loading network banner: $imagePath - Error: $error');
+          return _buildPlaceholder(width, height);
+        },
+      );
     } else {
-      // Handle non-asset images with placeholder
-      print('Using placeholder for non-asset banner path: $imagePath');
+      // Handle non-asset, non-network images with placeholder
+      print('Using placeholder for unknown banner path: $imagePath');
       return _buildPlaceholder(width, height);
     }
   }

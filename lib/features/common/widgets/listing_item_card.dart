@@ -18,6 +18,8 @@ class ListingItemCard extends StatelessWidget {
                   'Shop No. 51, Shalimar Building, Near Hospital, Sector 18, Noida ,Uttar Pradesh',
               imagePath: 'assets/images/post_image.png',
               isVerified: true,
+              businessId: 'temp_business_id', // Temporary value
+              categoryId: 'temp_category_id', // Temporary value
             ),
           ),
         );

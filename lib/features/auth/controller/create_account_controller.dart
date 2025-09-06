@@ -2,45 +2,30 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:myapp/main_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../common/constant/base_url.dart';
+import '../../../common/constant/endpoints.dart';
 
 class CreateAccountController extends GetxController {
   var isLoading = false.obs;
 
   Future<bool> createUser({
     required BuildContext context,
-
     required String email,
     required String firstName,
     required String password,
-  }) async
-  {
+  }) async {
     isLoading.value = true;
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString("token");
-
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("User token not found"),
-          backgroundColor: Colors.red,
-        ),
-      );
-      isLoading.value = false;
-      return false;
-    }
-
-    final url = Uri.parse('$baseUrl/user/basic/update-user');
+    final url = Uri.parse(Endpoints.signupStep);
 
     try {
       final response = await http.put(
         url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
         },
         body: jsonEncode({
           "step": 1,
@@ -60,8 +45,8 @@ class CreateAccountController extends GetxController {
           if (responseData['success'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                    responseData['message']?.toString() ?? "User updated successfully."),
+                content: Text(responseData['message']?.toString() ??
+                    "User updated successfully."),
                 backgroundColor: Colors.green,
               ),
             );
@@ -69,8 +54,8 @@ class CreateAccountController extends GetxController {
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                    responseData['message']?.toString() ?? "Failed to update user."),
+                content: Text(responseData['message']?.toString() ??
+                    "Failed to update user."),
                 backgroundColor: Colors.red,
               ),
             );
@@ -118,45 +103,34 @@ class CreateAccountController extends GetxController {
     required String area,
     required String occupation,
     required String maritalStatus,
-  }) async
-  {
+  }) async {
     isLoading.value = true;
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString("token");
-
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("User token not found"),
-          backgroundColor: Colors.red,
-        ),
-      );
-      isLoading.value = false;
-      return false;
-    }
-
-    final url = Uri.parse('$baseUrl/user/basic/update-user');
-
+    final url = Uri.parse(Endpoints.signupStep);
+    print("url ============= $url");
     try {
+
+      var bodyRequest = {
+        "step": 2,
+        "firstName": firstName,
+        "dathOfBirth": dateOfBirth,
+        "gender": gender,
+        "country": country,
+        "state": state,
+        "city": city,
+        "area": area,
+        "occupation": occupation,
+        "maritalStatus": maritalStatus,
+      };
+      print("body request ==============>>>>>>>>>>>>>>> $bodyRequest");
+
       final response = await http.put(
         url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
         },
-        body: jsonEncode({
-          "step": 2,
-          "firstName": firstName,
-          "dathOfBirth": dateOfBirth,
-          "gender": gender,
-          "country": country,
-          "state": state,
-          "city": city,
-          "area": area,
-          "occupation": occupation,
-          "maritalStatus": maritalStatus,
-        }),
+        body: jsonEncode(bodyRequest),
       );
 
       debugPrint("Response Status: ${response.statusCode}");
@@ -167,10 +141,12 @@ class CreateAccountController extends GetxController {
           final responseData = jsonDecode(response.body);
 
           if (responseData['success'] == true) {
+            print("isComplete value ====  ${responseData["data"]["isCompleted"]}");
+            AuthHelper.saveProfileCompleted(responseData["data"]["isCompleted"] as bool);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                    responseData['message']?.toString() ?? "User updated successfully."),
+                content: Text(responseData['message']?.toString() ??
+                    "User updated successfully."),
                 backgroundColor: Colors.green,
               ),
             );
@@ -178,8 +154,8 @@ class CreateAccountController extends GetxController {
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                    responseData['message']?.toString() ?? "Failed to update user."),
+                content: Text(responseData['message']?.toString() ??
+                    "Failed to update user."),
                 backgroundColor: Colors.red,
               ),
             );

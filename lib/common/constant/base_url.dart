@@ -1,3 +1,3 @@
 // lib/constants/base_url.dart
 
-const String baseUrl = "https://gamsgroup.in/api";
+const String baseUrl = "https://api.gamsgroup.in";

@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/common/navigation/route_manager.dart';
+import 'package:myapp/features/auth/screens/sign_in_screen.dart';
 import 'package:myapp/features/profile/screens/interest_preferences_screen.dart';
 import 'package:myapp/features/profile/screens/my_followings_screen.dart';
 import 'package:myapp/features/profile/screens/refer_earn_screen.dart';
 import 'package:myapp/features/profile/screens/saved_posts_screen.dart';
+import 'package:myapp/features/profile/screens/user_profile.dart';
 import 'package:myapp/features/profile/screens/your_tickets_screen.dart';
 import 'package:myapp/features/profile/widgets/profile_header.dart';
+import 'package:myapp/features/utsav/views/MyUtsavVouchersPage.dart';
 import 'package:myapp/features/profile/widgets/profile_menu_item.dart';
+import 'package:myapp/utils/dio/auth_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -492,6 +497,11 @@ class ProfileScreen extends StatelessWidget {
                 onTap: () => _navigateToInterestPreferences(context),
               ),
               ProfileMenuItem(
+                title: 'Address',
+                icon: Icons.chevron_right,
+                onTap: () => _navigateToInterestPreferences(context),
+              ),
+              ProfileMenuItem(
                 title: 'FAQs',
                 icon: Icons.chevron_right,
                 onTap: () => _navigateToFAQs(context),
@@ -546,7 +556,7 @@ class ProfileScreen extends StatelessWidget {
     final result = await Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) => const InterestPreferencesScreen()));
+            builder: (context) => AddressListView()));
 
     // Handle the result if needed
     if (result != null && result is List<String>) {
@@ -588,6 +598,28 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _performLogout(BuildContext context) async {
+    // Clear authentication data using AuthHelper
+    await AuthHelper.clearAuthData();
+    
+    // Clear permission status as well
+    await AuthHelper.savePermissionStatus(false);
+    
+    // Clear old showHome preference as well for backward compatibility
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('showHome');
+    await prefs.remove('userEmail');
+    
+    // Navigate to sign in screen and clear all previous routes
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const SignInScreen()),
+        (route) => false,
+      );
+    }
+  }
+
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -601,9 +633,9 @@ class ProfileScreen extends StatelessWidget {
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                // Add logout functionality here
+                await _performLogout(context);
               },
               child: const Text('Log Out', style: TextStyle(color: Colors.red)),
             ),
@@ -621,9 +653,9 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _navigateToMyVouchers(BuildContext context) {
-    // Create dedicated screen in the future
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('My Vouchers feature coming soon')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const MyUtsavVouchersPage()),
     );
   }
 

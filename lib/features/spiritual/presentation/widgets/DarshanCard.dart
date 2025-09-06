@@ -39,7 +39,7 @@ class DarshanCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: Stack(
                 children: [
-                  Image.asset(
+                  Image.network(
                     image,
                     width: 120,
                     height: 120,

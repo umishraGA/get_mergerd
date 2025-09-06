@@ -1,38 +1,27 @@
 import 'package:flutter/material.dart';
 
 class TermsConditionsBottomSheet extends StatelessWidget {
-  const TermsConditionsBottomSheet({super.key});
+  final String? title;
+  final String? description;
+  final List<String>? redeemDays;
+  final List<String>? howToRedeem;
+  final String? terms;
+  final String? redeemOnSingleBill;
+
+  const TermsConditionsBottomSheet({
+    super.key,
+    this.title,
+    this.description,
+    this.redeemDays,
+    this.howToRedeem,
+    this.terms,
+    this.redeemOnSingleBill,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Sample steps list - this could be passed as a parameter for dynamic steps
-    final List<Map<String, String>> redemptionSteps = [
-      {
-        'number': '1',
-        'text':
-            'Visit any Wow! China outlet listed on the happening bazar app where E-Gift Vouchers are applicable.'
-      },
-      {
-        'number': '2',
-        'text': 'Go to "My Transactions" in the "Account" section on the app'
-      },
-      {
-        'number': '3',
-        'text': 'Show the voucher code to the cashier at the time of billing'
-      },
-      {
-        'number': '4',
-        'text': 'The voucher amount will be deducted from your final bill'
-      },
-      {
-        'number': '5',
-        'text': 'Enjoy your meal with the discount applied to your order'
-      },
-      {
-        'number': '6',
-        'text': 'Remember to rate your experience after using the voucher'
-      },
-    ];
+    // Use dynamic steps from coupon data or fallback to default
+    final List<Map<String, String>> redemptionSteps = _buildRedemptionSteps();
 
     return Container(
       constraints: BoxConstraints(
@@ -65,9 +54,9 @@ class TermsConditionsBottomSheet extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Terms & Conditions',
-                    style: TextStyle(
+                  Text(
+                    title ?? 'Terms & Conditions',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
@@ -94,10 +83,23 @@ class TermsConditionsBottomSheet extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
+              // Description from coupon
+              if (description != null) ...[
+                Text(
+                  description!,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
               // Single voucher applicable text
-              const Text(
-                'Single voucher applicable per bill.',
-                style: TextStyle(
+              Text(
+                redeemOnSingleBill ?? 'Single voucher applicable per bill.',
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
@@ -105,15 +107,29 @@ class TermsConditionsBottomSheet extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // Non refundable point
-              const Text(
-                'a. Non Refundable.',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
+              // Terms from coupon
+              if (terms != null) ...[
+                Text(
+                  terms!,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+              ],
+
+              // Default non refundable point if no terms provided
+              if (terms == null)
+                const Text(
+                  'a. Non Refundable.',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
               const SizedBox(height: 20),
 
               // Validity days section
@@ -129,15 +145,7 @@ class TermsConditionsBottomSheet extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: [
-                  _buildValidityDay('S', true),
-                  _buildValidityDay('M', true),
-                  _buildValidityDay('T', true),
-                  _buildValidityDay('W', true),
-                  _buildValidityDay('T', true),
-                  _buildValidityDay('F', true),
-                  _buildValidityDay('S', true),
-                ],
+                children: _buildValidityDays(),
               ),
               const SizedBox(height: 24),
 
@@ -228,5 +236,57 @@ class TermsConditionsBottomSheet extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  List<Map<String, String>> _buildRedemptionSteps() {
+    if (howToRedeem != null && howToRedeem!.isNotEmpty) {
+      return howToRedeem!.asMap().entries.map((entry) {
+        return {
+          'number': (entry.key + 1).toString(),
+          'text': entry.value,
+        };
+      }).toList();
+    }
+    
+    // Default steps if no data provided
+    return [
+      {
+        'number': '1',
+        'text': 'Visit the outlet where vouchers are applicable.'
+      },
+      {
+        'number': '2',
+        'text': 'Go to "My Transactions" in the "Account" section on the app'
+      },
+      {
+        'number': '3',
+        'text': 'Show the voucher code to the cashier at the time of billing'
+      },
+      {
+        'number': '4',
+        'text': 'The voucher amount will be deducted from your final bill'
+      },
+    ];
+  }
+
+  List<Widget> _buildValidityDays() {
+    const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    
+    if (redeemDays != null && redeemDays!.isNotEmpty) {
+      return dayLabels.asMap().entries.map((entry) {
+        final index = entry.key;
+        final dayLabel = entry.value;
+        final dayName = dayNames[index];
+        final isValid = redeemDays!.any((day) => 
+          day.toLowerCase().contains(dayName.toLowerCase()) ||
+          day.toLowerCase().contains(dayLabel.toLowerCase())
+        );
+        return _buildValidityDay(dayLabel, isValid);
+      }).toList();
+    }
+    
+    // Default: all days valid if no data provided
+    return dayLabels.map((day) => _buildValidityDay(day, true)).toList();
   }
 }

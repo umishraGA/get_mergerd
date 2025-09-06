@@ -4,20 +4,70 @@ import 'package:flutter/material.dart';
 import 'package:myapp/common/navigation/route_manager.dart';
 import 'package:myapp/core/theme/AppTextStyles.dart';
 import 'package:myapp/features/location/LocationSearchPage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class TopAppBarCustom extends StatelessWidget {
+class TopAppBarCustom extends StatefulWidget {
   const TopAppBarCustom({
     super.key,
     this.color = const Color(0xFFE13C40),
     this.textColor = Colors.white,
     this.subTitleColor = Colors.white,
     this.isVisibleSearchBar = true,
+    this.onSearchSubmitted,
   });
 
   final Color color;
   final Color textColor;
   final Color subTitleColor;
   final bool isVisibleSearchBar;
+  final Function(String)? onSearchSubmitted;
+
+  @override
+  State<TopAppBarCustom> createState() => _TopAppBarCustomState();
+}
+
+class _TopAppBarCustomState extends State<TopAppBarCustom> with WidgetsBindingObserver {
+  String _locationName = 'Charbag';
+  String _locationAddress = 'Mattyari,Lucknow - 226028';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadSelectedLocation();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadSelectedLocation();
+    }
+  }
+
+  Future<void> _loadSelectedLocation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final name = prefs.getString('selected_location_name');
+      final address = prefs.getString('selected_location_address');
+      
+      if (name != null && address != null) {
+        setState(() {
+          _locationName = name;
+          _locationAddress = address;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading selected location: $e');
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -27,7 +77,7 @@ class TopAppBarCustom extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: color, // Red background
+          color: widget.color, // Red background
           borderRadius: const BorderRadius.only(
             bottomLeft: Radius.circular(18),
             bottomRight: Radius.circular(18),
@@ -40,7 +90,7 @@ class TopAppBarCustom extends StatelessWidget {
                 MediaQuery.of(context)
                     .padding
                     .top, // Add status bar height padding
-            bottom: isVisibleSearchBar ? 22 : 0),
+            bottom: widget.isVisibleSearchBar ? 22 : 0),
         child: Column(
           children: [
             Row(
@@ -51,12 +101,12 @@ class TopAppBarCustom extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
-                      color: textColor.withOpacity(0.15),
+                      color: widget.textColor.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Icon(
                       Icons.location_on,
-                      color: textColor,
+                      color: widget.textColor,
                       size: 24,
                     ),
                   ),
@@ -71,23 +121,28 @@ class TopAppBarCustom extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            'Charbag',
-                            style:
-                                AppTextStyles.semiBold18.withColor(textColor),
+                          Flexible(
+                            child: Text(
+                              _locationName,
+                              style:
+                                  AppTextStyles.semiBold18.withColor(widget.textColor),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           const SizedBox(width: 4),
                           Image.asset(
                             'assets/images/down_arrow.png',
                             width: 13,
                             height: 9,
-                            color: textColor,
+                            color: widget.textColor,
                           )
                         ],
                       ),
                       Text(
-                        'Mattyari,Lucknow - 226028',
-                        style: AppTextStyles.regular12.withColor(subTitleColor),
+                        _locationAddress,
+                        style: AppTextStyles.regular12.withColor(widget.subTitleColor),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ],
                   ),
@@ -104,7 +159,7 @@ class TopAppBarCustom extends StatelessWidget {
                     // ),
                     child: Icon(
                       Icons.notifications_outlined,
-                      color: textColor,
+                      color: widget.textColor,
                       size: 24,
                     ),
                   ),
@@ -123,7 +178,7 @@ class TopAppBarCustom extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            if (isVisibleSearchBar)
+            if (widget.isVisibleSearchBar)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                 child: Container(
@@ -141,28 +196,39 @@ class TopAppBarCustom extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.only(
+                          borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(8),
                             bottomLeft: Radius.circular(8),
                           ),
-                          child: RotatingHintTextField(),
-                        ),
-                      ),
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.horizontal(
-                            right: Radius.circular(8),
+                          child: RotatingHintTextField(
+                            controller: _searchController,
+                            onSearchSubmitted: widget.onSearchSubmitted,
                           ),
                         ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.search,
-                            color: Colors.grey,
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          final text = _searchController.text.trim();
+                          if (text.isNotEmpty) {
+                            widget.onSearchSubmitted?.call(text);
+                          }
+                        },
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.horizontal(
+                              right: Radius.circular(8),
+                            ),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.search,
+                              color: Colors.grey,
+                            ),
                           ),
                         ),
                       ),
@@ -176,34 +242,45 @@ class TopAppBarCustom extends StatelessWidget {
     );
   }
 
-  void _navigateToLocationSearch(BuildContext context) {
-    Navigator.of(context).push(
+  void _navigateToLocationSearch(BuildContext context) async {
+    final result = await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const LocationSearchPage(
-        ),
+        builder: (context) => const LocationSearchPage(),
       ),
     );
+    
+    // Reload location if user made a selection
+    if (result != null) {
+      _loadSelectedLocation();
+    }
   }
 }
 
 /// A TextField with a hint that changes every 2 seconds
 class RotatingHintTextField extends StatefulWidget {
-  const RotatingHintTextField({super.key});
+  const RotatingHintTextField({
+    super.key,
+    this.controller,
+    this.onSearchSubmitted,
+  });
+
+  final TextEditingController? controller;
+  final Function(String)? onSearchSubmitted;
 
   @override
   State<RotatingHintTextField> createState() => _RotatingHintTextFieldState();
 }
 
 class _RotatingHintTextFieldState extends State<RotatingHintTextField> {
-  final TextEditingController _controller = TextEditingController();
+  late final TextEditingController _controller;
   final List<String> _searchSuggestions = [
     'Search for \'Wedding Planner\'',
     'Search for \'Restaurants\'',
     'Search for \'Hotels\'',
-    'Search for \'Doctors\'',
-    'Search for \'Clinics\'',
-    'Search for \'Temples\'',
-    'Search for \'Events\'',
+    'Search for \'Beauty Salon\'',
+    'Search for \'Event Venues\'',
+    'Search for \'Catering\'',
+    'Search for \'Photography\'',
   ];
 
   int _currentIndex = 0;
@@ -212,6 +289,7 @@ class _RotatingHintTextFieldState extends State<RotatingHintTextField> {
   @override
   void initState() {
     super.initState();
+    _controller = widget.controller ?? TextEditingController();
     // Start the timer to change suggestions every 2 seconds
     _timer = Timer.periodic(const Duration(seconds: 2), (timer) {
       setState(() {
@@ -223,7 +301,9 @@ class _RotatingHintTextFieldState extends State<RotatingHintTextField> {
   @override
   void dispose() {
     _timer?.cancel();
-    _controller.dispose();
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
@@ -232,6 +312,11 @@ class _RotatingHintTextFieldState extends State<RotatingHintTextField> {
     return TextField(
       controller: _controller,
       cursorColor: Colors.black,
+      onSubmitted: (value) {
+        if (value.trim().isNotEmpty) {
+          widget.onSearchSubmitted?.call(value.trim());
+        }
+      },
       decoration: InputDecoration(
         isDense: true,
         contentPadding: const EdgeInsets.only(

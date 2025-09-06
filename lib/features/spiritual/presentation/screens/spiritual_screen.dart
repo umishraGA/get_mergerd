@@ -1,9 +1,18 @@
+
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:myapp/core/theme/AppTextStyles.dart';
 import 'package:myapp/features/common/widgets/TopAppBarCustom.dart';
-
-class SpiritualScreen extends StatelessWidget {
+import '../controller/choose_your_religion_controller.dart';
+class SpiritualScreen extends StatefulWidget {
   const SpiritualScreen({super.key});
+
+  @override
+  State<SpiritualScreen> createState() => _SpiritualScreenState();
+}
+
+class _SpiritualScreenState extends State<SpiritualScreen> {
+  final SpiritualController controller = Get.put(SpiritualController());
 
   @override
   Widget build(BuildContext context) {
@@ -26,89 +35,43 @@ class SpiritualScreen extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: GridView.count(
-                padding: EdgeInsets.zero,
-                crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                children: [
-                  _ReligionCard(
-                    title: 'HINDUISM',
-                    iconPath: 'assets/images/spiritual/hinduism.png',
-                    color: const Color(0xFFB25D4C),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/spiritual/hinduism',
-                          arguments: {
-                            'bannerImage':
-                                'assets/images/spiritual/backgrounds/hinduism_bg.png'
-                          });
-                    },
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (controller.religionList.isEmpty) {
+                  return const Center(child: Text("No religions found"));
+                }
+
+                return GridView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: controller.religionList.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 0.9,
                   ),
-                  _ReligionCard(
-                    title: 'SIKHISM',
-                    iconPath: 'assets/images/spiritual/sikhism.png',
-                    color: const Color(0xFF407676),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/spiritual/hinduism',
-                          arguments: {
-                            'bannerImage':
-                                'assets/images/spiritual/backgrounds/sikhism_bg.png'
-                          });
-                    },
-                  ),
-                  _ReligionCard(
-                    title: 'ISLAM',
-                    iconPath: 'assets/images/spiritual/islam.png',
-                    color: const Color(0xFF2D5240),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/spiritual/islam',
-                          arguments: {
-                            'bannerImage':
-                                'assets/images/spiritual/backgrounds/islam_bg.png'
-                          });
-                    },
-                  ),
-                  _ReligionCard(
-                    title: 'BUDDHISM',
-                    iconPath: 'assets/images/spiritual/budhism.png',
-                    color: const Color(0xFF7D4B77),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/spiritual/hinduism',
-                          arguments: {
-                            'bannerImage':
-                                'assets/images/spiritual/backgrounds/buddhism_bg.png'
-                          });
-                    },
-                  ),
-                  _ReligionCard(
-                    title: 'CHRISTIANITY',
-                    iconPath: 'assets/images/spiritual/christianity.png',
-                    color: const Color(0xFFA13B3B),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/spiritual/hinduism',
-                          arguments: {
-                            'bannerImage':
-                                'assets/images/spiritual/backgrounds/christianity_bg.png'
-                          });
-                    },
-                  ),
-                  _ReligionCard(
-                    title: 'JAINISM',
-                    iconPath: 'assets/images/spiritual/jainism.png',
-                    color: const Color(0xFF6B4B3B),
-                    onTap: () {
-                      Navigator.pushNamed(context, '/spiritual/hinduism',
-                          arguments: {
-                            'bannerImage':
-                                'assets/images/spiritual/backgrounds/jainism_bg.png'
-                          });
-                    },
-                  ),
-                  const SizedBox(
-                    height: 10,
-                  ),
-                ],
-              ),
+                  itemBuilder: (context, index) {
+                    final religion = controller.religionList[index];
+                    final name = religion['name'] ?? '';
+                    final image = religion['icon']?['mobile_image'] ??
+                        'https://via.placeholder.com/100';
+
+                    return _ReligionCard(
+                      title: name.toUpperCase().toString(),
+                      imageUrl: image.toString(),
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/spiritual/${name.toLowerCase()}',
+                        );
+                      },
+                    );
+                  },
+                );
+              }),
             ),
           ),
         ],
@@ -119,14 +82,12 @@ class SpiritualScreen extends StatelessWidget {
 
 class _ReligionCard extends StatelessWidget {
   final String title;
-  final String iconPath;
-  final Color color;
+  final String imageUrl;
   final VoidCallback onTap;
 
   const _ReligionCard({
     required this.title,
-    required this.iconPath,
-    required this.color,
+    required this.imageUrl,
     required this.onTap,
   });
 
@@ -139,45 +100,45 @@ class _ReligionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           width: double.infinity,
-          height: 180,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
-              // // Back shadow
               BoxShadow(
-                color: color.withOpacity(0.2),
-                // offset: const Offset(4, 4),
+                color: Colors.black.withOpacity(0.1),
                 blurRadius: 10,
-                spreadRadius: -2,
-              ),
-              // Main shadow
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                // offset: const Offset(0, 0),
-                blurRadius: 12,
-                spreadRadius: 0,
+                spreadRadius: 1,
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Stack(
-              children: [
-                Image.asset(
-                  width: double.infinity,
-                  height: double.infinity,
-                  iconPath,
-                  fit: BoxFit.cover,
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Text(
-                    title,
-                    style: AppTextStyles.medium18.withColor(Colors.white),
+          child: Stack(
+            children: [
+              Image.network(
+                imageUrl,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                const Center(child: Icon(Icons.image_not_supported)),
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                alignment: Alignment.bottomLeft,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withOpacity(0.7),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
                   ),
                 ),
-              ],
-            ),
+                child: Text(
+                  title,
+                  style: AppTextStyles.medium18.withColor(Colors.white),
+                ),
+              ),
+            ],
           ),
         ),
       ),

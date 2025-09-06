@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:video_player/video_player.dart';
 
-import '../models/StoryModel.dart';
+import '../models/story_response_models.dart';
+import '../controllers/story_controller.dart';
+import '../../posts/widgets/NetworkImageWidget.dart';
 
 class StoryView extends StatefulWidget {
-  final List<StoryModel> stories;
+  final List<StoryItem> stories;
   final int initialIndex;
   final VoidCallback? onNext; // Callback when all stories are done
   final VoidCallback? onPrevious; // Callback to show previous user's stories
   final VoidCallback? onClose; // Callback when user taps close button
   final bool disableGestures; // Whether to disable gesture detection
+  final StoryController? storyController; // Controller for API interactions
 
   const StoryView({
     super.key,
@@ -20,6 +23,7 @@ class StoryView extends StatefulWidget {
     this.onPrevious,
     this.onClose,
     this.disableGestures = false,
+    this.storyController,
   });
 
   @override
@@ -116,7 +120,10 @@ class _StoryViewState extends State<StoryView>
 
           // If the current story is an image, restart progress simulation
           final currentStory = widget.stories[_currentIndex];
-          if (currentStory.mediaType == StoryMediaType.image) {
+          final mediaType = (currentStory.media?.isNotEmpty ?? false) 
+            ? currentStory.media!.first.type 
+            : 'image';
+          if (mediaType == 'image') {
             _simulateProgress();
           }
         }
@@ -130,8 +137,15 @@ class _StoryViewState extends State<StoryView>
 
   void _initializeStory() {
     final currentStory = widget.stories[_currentIndex];
+    final mediaType = (currentStory.media?.isNotEmpty ?? false) 
+      ? currentStory.media!.first.type 
+      : 'image';
+    final mediaUrl = (currentStory.media?.isNotEmpty ?? false) 
+      ? currentStory.media!.first.url 
+      : '';
+      
     debugPrint(
-        "Initializing story: ${currentStory.id}, media type: ${currentStory.mediaType}, videoUrl: ${currentStory.videoUrl}");
+        "Initializing story: ${currentStory.id}, media type: $mediaType, mediaUrl: $mediaUrl");
 
     setState(() {
       _hasVideoError = false;
@@ -139,9 +153,8 @@ class _StoryViewState extends State<StoryView>
       _progress = 0.0;
     });
 
-    if (currentStory.mediaType == StoryMediaType.video &&
-        currentStory.videoUrl != null) {
-      _initializeVideo(currentStory.videoUrl!);
+    if (mediaType == 'video' && mediaUrl?.isNotEmpty == true) {
+      _initializeVideo(mediaUrl!);
     } else {
       // For image stories, we'll simulate progress
       _simulateProgress();
@@ -166,7 +179,11 @@ class _StoryViewState extends State<StoryView>
       }
 
       if (_progress >= 1.0) {
-        _moveToNextStory();
+        debugPrint("StoryView: Progress completed, moving to next story");
+        // Ensure we're still mounted before calling moveToNextStory
+        if (mounted) {
+          _moveToNextStory();
+        }
         return false;
       }
 
@@ -465,8 +482,10 @@ class _StoryViewState extends State<StoryView>
   }
 
   void _moveToNextStory() {
-    debugPrint("Moving to next story: $_currentIndex ${widget.stories.length}");
+    debugPrint("StoryView: Moving to next story. Current: $_currentIndex, Total: ${widget.stories.length}");
+    
     if (_currentIndex < widget.stories.length - 1) {
+      debugPrint("StoryView: Advancing to story ${_currentIndex + 1}");
       _pageController.animateToPage(
         _currentIndex + 1,
         duration: const Duration(milliseconds: 300),
@@ -474,11 +493,25 @@ class _StoryViewState extends State<StoryView>
       );
     } else {
       // Last story for this user, call the onNext callback
-      if (widget.onNext != null) {
-        widget.onNext!();
-      } else {
-        Navigator.of(context).pop();
-      }
+      debugPrint("StoryView: Last story reached for this user");
+      
+      // Add a brief pause to show story completion
+      setState(() {
+        _isPaused = true; // Pause any ongoing progress
+      });
+      
+      // Brief delay before transitioning to next user or closing
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          if (widget.onNext != null) {
+            debugPrint("StoryView: Calling onNext callback after delay");
+            widget.onNext!();
+          } else {
+            debugPrint("StoryView: No onNext callback, popping navigation after delay");
+            Navigator.of(context).pop();
+          }
+        }
+      });
     }
   }
 
@@ -576,7 +609,7 @@ class _StoryViewState extends State<StoryView>
 
   @override
   Widget build(BuildContext context) {
-    final StoryModel currentStory = widget.stories[_currentIndex];
+    final StoryItem currentStory = widget.stories[_currentIndex];
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
@@ -626,10 +659,13 @@ class _StoryViewState extends State<StoryView>
 
                       // Short delay to show the animation before dismissing
                       Future.delayed(const Duration(milliseconds: 100), () {
-                        if (widget.onClose != null) {
-                          widget.onClose!();
-                        } else {
-                          Navigator.of(context).pop();
+                        debugPrint('StoryView: Swipe down detected, closing story');
+                        if (mounted) {
+                          if (widget.onClose != null) {
+                            widget.onClose!();
+                          } else {
+                            Navigator.of(context).pop();
+                          }
                         }
                       });
                     } else {
@@ -648,100 +684,80 @@ class _StoryViewState extends State<StoryView>
                           (_dragOffset / 1000)
                               .clamp(0.0, 0.1)), // Subtle scaling effect
                     alignment: Alignment.center,
-                    child: Opacity(
-                      opacity: _dragOpacity,
-                      child: PageView.builder(
-                        controller: _pageController,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentIndex = index;
-                            _progress = 0.0;
-                          });
-                          _initializeStory();
-                        },
-                        itemCount: widget.stories.length,
-                        itemBuilder: (context, index) {
-                          final story = widget.stories[index];
-                          return _buildStoryContent(story);
-                        },
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: double.infinity,
+                      child: Opacity(
+                        opacity: _dragOpacity,
+                        child: PageView.builder(
+                          controller: _pageController,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentIndex = index;
+                              _progress = 0.0;
+                            });
+                            _initializeStory();
+                          },
+                          itemCount: widget.stories.length,
+                          itemBuilder: (context, index) {
+                            final story = widget.stories[index];
+                            return _buildStoryContent(story);
+                          },
+                        ),
                       ),
                     ),
                   ),
                 ),
 
-                // Story Progress Indicators - animated with the drag
+                // User info row
                 Positioned(
-                  top: 60 + (_dragOffset * 0.5),
+                  top: MediaQuery.of(context).padding.top + 40 + (_dragOffset * 0.5),
                   left: 8,
-                  right: 8, // Full width progress bar
+                  right: 8,
                   child: Opacity(
                       opacity: _dragOpacity,
-                      child: Column(
-                        children: [
-                          Row(
-                            children: List.generate(
-                              widget.stories.length,
-                              (index) => Expanded(
-                                child: Container(
-                                  height: 3,
-                                  margin:
-                                      const EdgeInsets.symmetric(horizontal: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.3),
-                                    borderRadius: BorderRadius.circular(1.5),
-                                  ),
-                                  child: index == _currentIndex
-                                      ? FractionallySizedBox(
-                                          alignment: Alignment.centerLeft,
-                                          widthFactor: _progress,
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(1.5),
-                                            ),
-                                          ),
-                                        )
-                                      : FractionallySizedBox(
-                                          alignment: Alignment.centerLeft,
-                                          widthFactor:
-                                              index < _currentIndex ? 1.0 : 0.0,
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(1.5),
-                                            ),
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 16,
-                          ),
-                          Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
                                 Row(
                                   children: [
                                     CircleAvatar(
                                       radius: 20,
-                                      backgroundImage:
-                                          AssetImage(currentStory.profileImage),
+                                      backgroundImage: () {
+                                        final profileImage = currentStory.chooseTypeId?.image ?? currentStory.chooseTypeId?.logo?.url;
+                                        if (profileImage != null) {
+                                          return NetworkImage(profileImage) as ImageProvider;
+                                        }
+                                        return const AssetImage('assets/images/default_avatar.png') as ImageProvider;
+                                      }(),
                                     ),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      currentStory.username,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${currentStory.createdBy?.firstName ?? ''} ${currentStory.createdBy?.lastName ?? ''}'.trim().isNotEmpty ? '${currentStory.createdBy?.firstName ?? ''} ${currentStory.createdBy?.lastName ?? ''}'.trim() : 'User',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          if ((currentStory.likesCount ?? 0) > 0)
+                                            Text(
+                                              '${currentStory.likesCount ?? 0} likes',
+                                              style: TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ),
-                                    if (currentStory.mediaType ==
-                                        StoryMediaType.video)
+                                    // Check if current story is a video
+                                    if ((currentStory.media?.isNotEmpty ?? false) && 
+                                        currentStory.media!.first.type == 'video')
                                       Row(
                                         children: [
                                           const SizedBox(width: 8),
@@ -762,32 +778,32 @@ class _StoryViewState extends State<StoryView>
                                       ),
                                   ],
                                 ),
-                                // InkWell(
-                                //   onTap: () {
-                                //     print('working click');
-                                //     if (widget.onClose != null) {
-                                //       widget.onClose!();
-                                //     } else {
-                                //       Navigator.of(context).pop();
-                                //     }
-                                //   },
-                                //   borderRadius: BorderRadius.circular(16),
-                                //   child: Container(
-                                //     padding: const EdgeInsets.all(4),
-                                //     decoration: BoxDecoration(
-                                //       color: Colors.black26,
-                                //       borderRadius: BorderRadius.circular(16),
-                                //     ),
-                                //     child: const Icon(
-                                //       Icons.close,
-                                //       color: Colors.white,
-                                //       size: 20,
+                                // Like button
+                                // Material(
+                                //   color: Colors.transparent,
+                                //   child: InkWell(
+                                //     onTap: () => _handleStoryLike(currentStory.id ?? ''),
+                                //     borderRadius: BorderRadius.circular(16),
+                                //     child: Container(
+                                //       padding: const EdgeInsets.all(4),
+                                //       decoration: BoxDecoration(
+                                //         color: Colors.black26,
+                                //         borderRadius: BorderRadius.circular(16),
+                                //       ),
+                                //       child: Icon(
+                                //         (currentStory.isLikedByUser ?? false)
+                                //             ? Icons.favorite
+                                //             : Icons.favorite_border,
+                                //         color: (currentStory.isLikedByUser ?? false)
+                                //             ? Colors.red
+                                //             : Colors.white,
+                                //         size: 20,
+                                //       ),
                                 //     ),
                                 //   ),
                                 // ),
                               ])
-                        ],
-                      )),
+                      ),
                 ),
 
                 // Pause indicator
@@ -808,7 +824,7 @@ class _StoryViewState extends State<StoryView>
 
           // Close button - use Positioned instead of SafeArea
           Positioned(
-            top: 20,
+            top: MediaQuery.of(context).padding.top + 20,
             right: 8,
             child: Opacity(
               opacity: _dragOpacity,
@@ -816,10 +832,13 @@ class _StoryViewState extends State<StoryView>
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () {
-                    if (widget.onClose != null) {
-                      widget.onClose!();
-                    } else {
-                      Navigator.of(context).pop();
+                    debugPrint('StoryView: Close button tapped');
+                    if (mounted) {
+                      if (widget.onClose != null) {
+                        widget.onClose!();
+                      } else {
+                        Navigator.of(context).pop();
+                      }
                     }
                   },
                   borderRadius: BorderRadius.circular(16),
@@ -833,6 +852,52 @@ class _StoryViewState extends State<StoryView>
                       Icons.close,
                       color: Colors.white,
                       size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Story Progress Indicators - positioned in outer Stack for visibility
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 8,
+            right: 8,
+            child: Opacity(
+              opacity: _dragOpacity,
+              child: Row(
+                children: List.generate(
+                  widget.stories.length,
+                  (index) => Expanded(
+                    child: Container(
+                      height: 3,
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(1.5),
+                      ),
+                      child: index == _currentIndex
+                          ? FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: _progress,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(1.5),
+                                ),
+                              ),
+                            )
+                          : FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: index < _currentIndex ? 1.0 : 0.0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(1.5),
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -860,7 +925,7 @@ class _StoryViewState extends State<StoryView>
   }
 
   // Updated emoji reaction section with more distinctive background
-  Widget _buildStoryInteractionBar(StoryModel story) {
+  Widget _buildStoryInteractionBar(StoryItem story) {
     // Get keyboard height directly from MediaQuery
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
@@ -893,7 +958,7 @@ class _StoryViewState extends State<StoryView>
           // Comments display area - hide when keyboard is visible to save space
           if (!_isKeyboardVisible)
             ValueListenableBuilder<List<String>>(
-              valueListenable: _getCommentsForStory(story.id),
+              valueListenable: _getCommentsForStory(story.id ?? ''),
               builder: (context, commentsList, _) {
                 // Don't show anything if there are no comments
                 if (commentsList.isEmpty) {
@@ -993,174 +1058,174 @@ class _StoryViewState extends State<StoryView>
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Text field with send button inside
-                Expanded(
-                  flex: 2,
-                  child: Stack(
-                    alignment: Alignment.centerRight,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: ValueListenableBuilder<bool>(
-                            valueListenable: _hasCommentText,
-                            builder: (context, hasText, child) {
-                              return TextField(
-                                cursorColor: Colors.white,
-                                controller: _commentController,
-                                focusNode:
-                                    _commentFocusNode, // Use our focus node for keyboard detection
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  hintText: 'Reply to ${story.username}...',
-                                  hintStyle: TextStyle(
-                                    color: Colors.white.withOpacity(0.6),
-                                    fontWeight: FontWeight.w300,
-                                    fontSize: 14,
-                                  ),
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  filled: true,
-                                  // Darken text field background for contrast
-                                  fillColor: hasText
-                                      ? Colors.blue.withOpacity(
-                                          0.2) // Slight blue tint when text is present
-                                      : Colors.black.withOpacity(0.5),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      vertical: 12, horizontal: 12),
-                                  // Add padding to the right to make room for the send button
-                                  suffixIcon: const SizedBox(width: 40),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    borderSide: hasText
-                                        ? BorderSide(
-                                            color: Colors.blue.withOpacity(0.3),
-                                            width: 1)
-                                        : BorderSide.none,
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    borderSide: BorderSide(
-                                        color: Colors.blue.withOpacity(0.5),
-                                        width: 1),
-                                  ),
-                                ),
-                                onSubmitted: (text) {
-                                  if (text.trim().isNotEmpty) {
-                                    _getCommentsForStory(story.id).value = [
-                                      ..._getCommentsForStory(story.id).value,
-                                      text
-                                    ];
-                                    _commentController.clear();
-                                    // Safe scrolling - check if controller is attached first
-                                    Future.delayed(
-                                        const Duration(milliseconds: 100), () {
-                                      if (_commentsScrollController
-                                          .hasClients) {
-                                        _commentsScrollController.animateTo(
-                                          0, // Scroll to top when reversed list
-                                          duration:
-                                              const Duration(milliseconds: 300),
-                                          curve: Curves.easeOut,
-                                        );
-                                      }
-                                    });
-
-                                    // Unfocus to hide keyboard after submitting
-                                    _commentFocusNode.unfocus();
-
-                                    // Resume story playback
-                                    setState(() {
-                                      _isPaused = false;
-                                    });
-                                    // Resume video if needed
-                                    if (_videoController != null &&
-                                        !_videoController!.value.isPlaying) {
-                                      _videoController!.play();
-                                    }
-                                  } else {
-                                    // If empty submission, just unfocus without clearing
-                                    _commentFocusNode.unfocus();
-                                  }
-                                },
-                              );
-                            }),
-                      ),
-                      // Send button inside the TextField (simplified)
-                      Positioned(
-                        right: 14,
-                        child: ValueListenableBuilder<bool>(
-                            valueListenable: _hasCommentText,
-                            builder: (context, hasText, _) {
-                              return Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(30),
-                                  onTap: () async {
-                                    final text = _commentController.text;
-                                    if (text.trim().isNotEmpty) {
-                                      // Play comment sound
-                                      await _playCommentSound();
-
-                                      _getCommentsForStory(story.id).value = [
-                                        ..._getCommentsForStory(story.id).value,
-                                        text
-                                      ];
-                                      _commentController.clear();
-                                      // Safe scrolling - check if controller is attached first
-                                      Future.delayed(
-                                          const Duration(milliseconds: 100),
-                                          () {
-                                        if (_commentsScrollController
-                                            .hasClients) {
-                                          _commentsScrollController.animateTo(
-                                            0, // Scroll to top when reversed list
-                                            duration: const Duration(
-                                                milliseconds: 300),
-                                            curve: Curves.easeOut,
-                                          );
-                                        }
-                                      });
-
-                                      // Unfocus to hide keyboard after sending
-                                      _commentFocusNode.unfocus();
-
-                                      // Resume story playback
-                                      setState(() {
-                                        _isPaused = false;
-                                      });
-                                      // Resume video if needed
-                                      if (_videoController != null &&
-                                          !_videoController!.value.isPlaying) {
-                                        _videoController!.play();
-                                      }
-                                    } else {
-                                      // If empty text, just unfocus without clearing
-                                      _commentFocusNode.unfocus();
-                                    }
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: hasText
-                                          ? Colors.blue.withOpacity(0.6)
-                                          : Colors.transparent,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.send_rounded,
-                                      color: hasText
-                                          ? Colors.white
-                                          : Colors.lightBlueAccent,
-                                      size: 22,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-                      ),
-                    ],
-                  ),
-                ),
+                // Expanded(
+                //   flex: 2,
+                //   child: Stack(
+                //     alignment: Alignment.centerRight,
+                //     children: [
+                //       Padding(
+                //         padding: const EdgeInsets.symmetric(horizontal: 8),
+                //         child: ValueListenableBuilder<bool>(
+                //             valueListenable: _hasCommentText,
+                //             builder: (context, hasText, child) {
+                //               return TextField(
+                //                 cursorColor: Colors.white,
+                //                 controller: _commentController,
+                //                 focusNode:
+                //                     _commentFocusNode, // Use our focus node for keyboard detection
+                //                 style: const TextStyle(color: Colors.white),
+                //                 decoration: InputDecoration(
+                //                   hintText: 'Reply to ${'${story.createdBy?.firstName ?? ''} ${story.createdBy?.lastName ?? ''}'.trim()}...',
+                //                   hintStyle: TextStyle(
+                //                     color: Colors.white.withOpacity(0.6),
+                //                     fontWeight: FontWeight.w300,
+                //                     fontSize: 14,
+                //                   ),
+                //                   border: InputBorder.none,
+                //                   isDense: true,
+                //                   filled: true,
+                //                   // Darken text field background for contrast
+                //                   fillColor: hasText
+                //                       ? Colors.blue.withOpacity(
+                //                           0.2) // Slight blue tint when text is present
+                //                       : Colors.black.withOpacity(0.5),
+                //                   contentPadding: const EdgeInsets.symmetric(
+                //                       vertical: 12, horizontal: 12),
+                //                   // Add padding to the right to make room for the send button
+                //                   suffixIcon: const SizedBox(width: 40),
+                //                   enabledBorder: OutlineInputBorder(
+                //                     borderRadius: BorderRadius.circular(20),
+                //                     borderSide: hasText
+                //                         ? BorderSide(
+                //                             color: Colors.blue.withOpacity(0.3),
+                //                             width: 1)
+                //                         : BorderSide.none,
+                //                   ),
+                //                   focusedBorder: OutlineInputBorder(
+                //                     borderRadius: BorderRadius.circular(20),
+                //                     borderSide: BorderSide(
+                //                         color: Colors.blue.withOpacity(0.5),
+                //                         width: 1),
+                //                   ),
+                //                 ),
+                //                 onSubmitted: (text) {
+                //                   if (text.trim().isNotEmpty) {
+                //                     _getCommentsForStory(story.id??"").value = [
+                //                       ..._getCommentsForStory(story.id ?? "").value,
+                //                       text
+                //                     ];
+                //                     _commentController.clear();
+                //                     // Safe scrolling - check if controller is attached first
+                //                     Future.delayed(
+                //                         const Duration(milliseconds: 100), () {
+                //                       if (_commentsScrollController
+                //                           .hasClients) {
+                //                         _commentsScrollController.animateTo(
+                //                           0, // Scroll to top when reversed list
+                //                           duration:
+                //                               const Duration(milliseconds: 300),
+                //                           curve: Curves.easeOut,
+                //                         );
+                //                       }
+                //                     });
+                //
+                //                     // Unfocus to hide keyboard after submitting
+                //                     _commentFocusNode.unfocus();
+                //
+                //                     // Resume story playback
+                //                     setState(() {
+                //                       _isPaused = false;
+                //                     });
+                //                     // Resume video if needed
+                //                     if (_videoController != null &&
+                //                         !_videoController!.value.isPlaying) {
+                //                       _videoController!.play();
+                //                     }
+                //                   } else {
+                //                     // If empty submission, just unfocus without clearing
+                //                     _commentFocusNode.unfocus();
+                //                   }
+                //                 },
+                //               );
+                //             }),
+                //       ),
+                //       // Send button inside the TextField (simplified)
+                //       Positioned(
+                //         right: 14,
+                //         child: ValueListenableBuilder<bool>(
+                //             valueListenable: _hasCommentText,
+                //             builder: (context, hasText, _) {
+                //               return Material(
+                //                 color: Colors.transparent,
+                //                 child: InkWell(
+                //                   borderRadius: BorderRadius.circular(30),
+                //                   onTap: () async {
+                //                     final text = _commentController.text;
+                //                     if (text.trim().isNotEmpty) {
+                //                       // Play comment sound
+                //                       await _playCommentSound();
+                //
+                //                       _getCommentsForStory(story.id ?? '').value = [
+                //                         ..._getCommentsForStory(story.id ?? '').value,
+                //                         text
+                //                       ];
+                //                       _commentController.clear();
+                //                       // Safe scrolling - check if controller is attached first
+                //                       Future.delayed(
+                //                           const Duration(milliseconds: 100),
+                //                           () {
+                //                         if (_commentsScrollController
+                //                             .hasClients) {
+                //                           _commentsScrollController.animateTo(
+                //                             0, // Scroll to top when reversed list
+                //                             duration: const Duration(
+                //                                 milliseconds: 300),
+                //                             curve: Curves.easeOut,
+                //                           );
+                //                         }
+                //                       });
+                //
+                //                       // Unfocus to hide keyboard after sending
+                //                       _commentFocusNode.unfocus();
+                //
+                //                       // Resume story playback
+                //                       setState(() {
+                //                         _isPaused = false;
+                //                       });
+                //                       // Resume video if needed
+                //                       if (_videoController != null &&
+                //                           !_videoController!.value.isPlaying) {
+                //                         _videoController!.play();
+                //                       }
+                //                     } else {
+                //                       // If empty text, just unfocus without clearing
+                //                       _commentFocusNode.unfocus();
+                //                     }
+                //                   },
+                //                   child: AnimatedContainer(
+                //                     duration: const Duration(milliseconds: 200),
+                //                     padding: const EdgeInsets.all(6),
+                //                     decoration: BoxDecoration(
+                //                       color: hasText
+                //                           ? Colors.blue.withOpacity(0.6)
+                //                           : Colors.transparent,
+                //                       shape: BoxShape.circle,
+                //                     ),
+                //                     child: Icon(
+                //                       Icons.send_rounded,
+                //                       color: hasText
+                //                           ? Colors.white
+                //                           : Colors.lightBlueAccent,
+                //                       size: 22,
+                //                     ),
+                //                   ),
+                //                 ),
+                //               );
+                //             }),
+                //       ),
+                //     ],
+                //   ),
+                // ),
 
                 // Reduced to only three emoji reactions - hide when keyboard is visible to save space
                 // if (!_isKeyboardVisible)
@@ -1168,7 +1233,7 @@ class _StoryViewState extends State<StoryView>
                   flex: 1,
                   child: Container(
                     constraints:
-                        const BoxConstraints(maxWidth: 170, maxHeight: 55),
+                        const BoxConstraints(maxWidth: 350, maxHeight: 55),
                     height: 50,
                     margin: const EdgeInsets.only(right: 8, left: 4),
                     decoration: BoxDecoration(
@@ -1191,9 +1256,12 @@ class _StoryViewState extends State<StoryView>
                         mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _buildReactionButton('👍', 'Like'),
-                          _buildReactionButton('❤️', 'Love'),
-                          _buildReactionButton('🔥', 'Fire'),
+                          _buildReactionButton('👍', 'LIKE'),
+                          _buildReactionButton('❤️', 'LOVE'),
+                          _buildReactionButton('😂', 'HAHA'),
+                          _buildReactionButton('😮', 'WOW'),
+                          _buildReactionButton('😢', 'SAD'),
+                          _buildReactionButton('😡', 'ANGRY'),
                         ],
                       ),
                     ),
@@ -1202,6 +1270,7 @@ class _StoryViewState extends State<StoryView>
               ],
             ),
           ),
+
         ],
       ),
     );
@@ -1212,7 +1281,12 @@ class _StoryViewState extends State<StoryView>
     return ValueListenableBuilder<String?>(
       valueListenable: _selectedReaction,
       builder: (context, selected, _) {
-        final isSelected = selected == emoji;
+        final currentStory = widget.stories[_currentIndex];
+        
+        // Check if this reaction is selected either locally or from API
+        final isSelectedLocally = selected == emoji;
+        final isSelectedFromApi = _isReactionSelectedFromApi(currentStory, emoji, label);
+        final isSelected = isSelectedLocally || isSelectedFromApi;
 
         return Flexible(
           child: Column(
@@ -1238,34 +1312,26 @@ class _StoryViewState extends State<StoryView>
                       }
 
                       if (isSelected) {
+                        // If already selected, deselect it
                         _selectedReaction.value = null;
+                        // TODO: Add API call to remove reaction if backend supports it
                       } else {
-                        _selectedReaction.value = emoji;
-                        // Show a small visual feedback when selecting
-                        ScaffoldMessenger.of(context).clearSnackBars();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(emoji,
-                                    style: const TextStyle(fontSize: 18)),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Text(
-                                    'You reacted with $label',
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            backgroundColor: Colors.blueGrey.shade800,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            duration: const Duration(milliseconds: 800),
-                          ),
-                        );
+                        // Always clear any existing selection first to ensure mutual exclusivity
+                        _selectedReaction.value = null;
+                        
+                        final currentStory = widget.stories[_currentIndex];
+                        
+                        // Call reaction API for all emojis including heart
+                        final success = await _handleStoryReaction(currentStory.id ?? '', label.toUpperCase());
+                        
+                        // Only set the local selection if API call was successful
+                        if (success) {
+                          _selectedReaction.value = emoji;
+                          
+                          // Force a rebuild to update the UI immediately
+                          // This will refresh the story data and clear any previously selected reactions from API
+                          setState(() {});
+                        }
                       }
                     },
                     child: Center(
@@ -1406,18 +1472,27 @@ class _StoryViewState extends State<StoryView>
     );
   }
 
-  Widget _buildStoryContent(StoryModel story) {
+  Widget _buildStoryContent(StoryItem story) {
+    final mediaType = (story.media?.isNotEmpty ?? false) 
+      ? story.media!.first.type 
+      : 'image';
+    final mediaUrl = (story.media?.isNotEmpty ?? false) 
+      ? story.media!.first.url 
+      : '';
+      
     // For video stories
-    if (story.mediaType == StoryMediaType.video && story.videoUrl != null) {
+    if (mediaType == 'video' && mediaUrl?.isNotEmpty == true) {
       // Show loading state
       if (_isVideoLoading) {
         return Stack(
           fit: StackFit.expand,
           children: [
             // Show static image while loading
-            Image.asset(
-              story.mediaUrl,
+            NetworkImageWidget(
+              imageUrl: mediaUrl ?? '',
               fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
             ),
             Container(
               color: Colors.black.withOpacity(0.5),
@@ -1488,9 +1563,11 @@ class _StoryViewState extends State<StoryView>
           fit: StackFit.expand,
           children: [
             // Show static image on error
-            Image.asset(
-              story.mediaUrl,
+            NetworkImageWidget(
+              imageUrl: mediaUrl ?? '',
               fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
             ),
             Container(
               color: Colors.black.withOpacity(0.7),
@@ -1511,8 +1588,8 @@ class _StoryViewState extends State<StoryView>
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () {
-                        if (story.videoUrl != null) {
-                          _initializeVideo(story.videoUrl!);
+                        if (mediaUrl?.isNotEmpty == true) {
+                          _initializeVideo(mediaUrl!);
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -1549,8 +1626,8 @@ class _StoryViewState extends State<StoryView>
     }
 
     // For image stories
-    return Image.asset(
-      story.mediaUrl,
+    return NetworkImageWidget(
+      imageUrl: mediaUrl ?? '',
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
@@ -1594,5 +1671,122 @@ class _StoryViewState extends State<StoryView>
     } catch (e) {
       debugPrint('Error playing reaction sound: $e');
     }
+  }
+
+  /// Handle story like toggle
+  Future<void> _handleStoryLike(String storyId) async {
+    debugPrint('StoryView: _handleStoryLike called for storyId: $storyId');
+    
+    if (widget.storyController == null) {
+      debugPrint('StoryView: storyController is null, cannot like story');
+      return;
+    }
+
+    debugPrint('StoryView: Calling toggleStoryLike API...');
+    final success = await widget.storyController!.toggleStoryLike(storyId);
+    debugPrint('StoryView: toggleStoryLike API returned: $success');
+    
+    if (mounted) {
+      if (success) {
+        // Show success feedback
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Story ${widget.storyController!.getStoryById(storyId)?.isLikedByUser == true ? 'liked' : 'unliked'}!'),
+            duration: const Duration(seconds: 1),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Show error feedback
+        final errorMessage = widget.storyController!.likeError ?? 'Failed to like story';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Check if reaction is selected based on API data
+  bool _isReactionSelectedFromApi(StoryItem story, String emoji, String label) {
+    // Get the most up-to-date story data from the controller if available
+    StoryItem? updatedStory;
+    if (widget.storyController != null) {
+      updatedStory = widget.storyController!.getStoryById(story.id ?? '');
+    }
+    
+    // Use the updated story data if available, otherwise fall back to the original story
+    final storyToCheck = updatedStory ?? story;
+    
+    // Check userReaction field for all emojis including heart
+    final userReaction = storyToCheck.userReaction;
+    if (userReaction == null) return false;
+    
+    // Map emoji/label to expected API reaction values
+    switch (emoji) {
+      case '👍':
+        return userReaction.toUpperCase() == 'LIKE';
+      case '❤️':
+        return userReaction.toUpperCase() == 'LOVE';
+      case '😂':
+        return userReaction.toUpperCase() == 'HAHA';
+      case '😮':
+        return userReaction.toUpperCase() == 'SURPRISE' || userReaction.toUpperCase() == 'WOW';
+      case '😢':
+        return userReaction.toUpperCase() == 'SAD';
+      case '😡':
+        return userReaction.toUpperCase() == 'ANGRY';
+      default:
+        return false;
+    }
+  }
+
+  /// Handle story reaction
+  Future<bool> _handleStoryReaction(String storyId, String reactionType) async {
+    debugPrint('StoryView: _handleStoryReaction called for storyId: $storyId, reactionType: $reactionType');
+    
+    if (widget.storyController == null) {
+      debugPrint('StoryView: storyController is null, cannot add reaction');
+      return false;
+    }
+
+    debugPrint('StoryView: Calling addStoryReaction API...');
+    final success = await widget.storyController!.addStoryReaction(storyId, reactionType);
+    debugPrint('StoryView: addStoryReaction API returned: $success');
+    
+    if (mounted) {
+      if (success) {
+        // Show success feedback
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(reactionType, style: const TextStyle(fontSize: 18)),
+                const SizedBox(width: 8),
+                const Text('Reaction added!'),
+              ],
+            ),
+            duration: const Duration(seconds: 1),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Show error feedback
+        final errorMessage = widget.storyController!.reactionError ?? 'Failed to add reaction';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+    
+    return success;
   }
 }

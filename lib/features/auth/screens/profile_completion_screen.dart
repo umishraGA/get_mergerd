@@ -348,9 +348,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       );
                       setState(() => _isLoading = false);
                       if (success && mounted) {
-                        Navigator.push(
+                        Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(builder: (_) => InterestSelectionScreen()),
+                              (Route<dynamic> route) => false,
                         );
                       }
                     }

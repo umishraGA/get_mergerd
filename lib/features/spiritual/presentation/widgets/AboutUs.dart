@@ -1,210 +1,243 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:myapp/core/theme/AppTextStyles.dart';
 import 'package:myapp/features/common/widgets/CommonDivider.dart';
 
+import '../controller/temple_detail_controller.dart';
+
 class AboutUs extends StatelessWidget {
-  const AboutUs({super.key});
+  final String templeId;
+
+  const AboutUs({
+    super.key,
+    required this.templeId,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // About text
-          const Text(
-            'Jointech focuses on the AioT and big data applications of smart logistics, and is committed to becoming a leading global provider and operator of mobile asset management solutions, particularly offering global solutions for logistics equipment that carries.',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.5,
-              color: Colors.black87,
-            ),
-          ),
+    final TempleDetailController controller = Get.put(TempleDetailController());
+    controller.fetchTempleDetails(templeId);
 
-          const SizedBox(height: 10),
-          const CommonDivider(),
-          const SizedBox(height: 10),
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
 
-          // History section
-          const Text(
-            'History of Temple',
-            style: AppTextStyles.bold18,
-          ),
+      if (controller.errorMessage.value.isNotEmpty) {
+        return Center(child: Text(controller.errorMessage.value));
+      }
 
-          const SizedBox(height: 10),
-
-          const Text(
-            'The Kaal Bhairav Temple of Ujjain was built by King Bhadrasen, which is also mentioned in the Avanti Khanda of Skanda Purana. In this temple, idols of Lord Shiva, Mother Parvati, Lord Vishnu, and Ganesha from the Parmar era (9th to 13th century) have been discovered. During Raja Bhoj\'s reign, this temple was also rebuilt at the same time.',
-            style: AppTextStyles.medium15,
-          ),
-
-          const SizedBox(height: 10),
-          const CommonDivider(),
-          const SizedBox(height: 10),
-
-          // Significance section
-          const Text(
-            'Significance of the temple',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          const Text(
-            'It is popularly believed that King Mahakal of Ujjain appointed Kalabhairav to protect the city. For this reason, Kalbhairav is also called Kotwal of the city. In this temple of Bhairav Baba, alcohol is offered to him, but where the alcohol goes, this mystery has remained a mystery today. Thousands of devotees reach here every day to see this idol of Kalabhairav drinking alcohol. In this temple, the idol of Lord Kalabhairav is seen wearing a Saindia turban. This turban comes from the Saindia family of Gwalior for Baba Bhairavnath. This practice has been going on for hundreds of years.',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.5,
-              color: Colors.black87,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-          const CommonDivider(),
-          const SizedBox(height: 10),
-
-          // Darshan time section
-          const Text(
-            'Darshan Time',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          _buildTimeSection('Morning', '6:30 AM - 12:00 PM'),
-          const SizedBox(height: 8),
-          _buildTimeSection('Evening', '6:00 PM - 12:00 PM'),
-
-          const SizedBox(height: 10),
-          const CommonDivider(),
-          const SizedBox(height: 10),
-
-          // Aarti time section
-          const Text(
-            'Aarti Time',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          _buildTimeSection('Mangala Aarti timing', '6:30 AM - 12:00 PM'),
-
-          const SizedBox(height: 10),
-          const CommonDivider(),
-          const SizedBox(height: 10),
-
-          // Address section
-          const Text(
-            'Address',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          const Text(
-            'Uttar Pradesh, India',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.5,
-              color: Colors.black87,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-          const CommonDivider(),
-          const SizedBox(height: 10),
-
-          // Google Map section
-          const Text(
-            'Google Map',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          ElevatedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.directions),
-            label: const Text('Get Direction'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4A6BD6),
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(35),
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // About text
+            Text(
+              controller.about.isNotEmpty
+                  ? controller.about
+                  : 'No description available',
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: Colors.black87,
               ),
             ),
-          ),
 
-          const SizedBox(height: 10),
-          const CommonDivider(),
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
+            const CommonDivider(),
+            const SizedBox(height: 10),
 
-          // Social Media section
-          const Text(
-            'Social Media',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+            // History section
+            const Text(
+              'History of Temple',
+              style: AppTextStyles.bold18,
             ),
-          ),
 
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
 
-          Row(
-            children: [
-              _buildSocialIcon("assets/images/spiritual/youtube_logo.png"),
-              const SizedBox(width: 16),
-              _buildSocialIcon("assets/images/spiritual/insta_logo.png"),
-              const SizedBox(width: 16),
-              _buildSocialIcon("assets/images/spiritual/facebook_logo.png"),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-          const CommonDivider(),
-          const SizedBox(height: 10),
-
-          // Contact section
-          const Text(
-            'Contact',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+            Text(
+              controller.additionalInfo.isNotEmpty
+                  ? controller.additionalInfo.first['content']?.toString() ?? 'No history available'
+                  : 'No history available',
+              style: AppTextStyles.medium15,
             ),
-          ),
 
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
+            const CommonDivider(),
+            const SizedBox(height: 10),
 
-          const Text(
-            '9845879654, 8547895478',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.5,
-              color: Colors.black87,
+            // Darshan time section
+            const Text(
+              'Darshan Time',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
 
-          const SizedBox(height: 40),
-        ],
-      ),
-    );
+            const SizedBox(height: 10),
+
+            ...controller.darshanTimings.map((timing) => Column(
+              children: [
+                _buildTimeSection(
+                    timing['title']?.toString() ?? 'Darshan',
+                    '${timing['start']} - ${timing['end']}'
+                ),
+                const SizedBox(height: 8),
+              ],
+            )).toList(),
+
+            const SizedBox(height: 10),
+            const CommonDivider(),
+            const SizedBox(height: 10),
+
+            // Aarti time section
+            const Text(
+              'Aarti Time',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            ...controller.aartiTimings.map((timing) => Column(
+              children: [
+                _buildTimeSection(
+                    timing['title']?.toString() ?? 'Aarti',
+                    '${timing['start']} - ${timing['end']}'
+                ),
+                const SizedBox(height: 8),
+              ],
+            )).toList(),
+
+            const SizedBox(height: 10),
+            const CommonDivider(),
+            const SizedBox(height: 10),
+
+            // Address section
+            const Text(
+              'Address',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            Text(
+              '${controller.city}, ${controller.state}, ${controller.country}',
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: Colors.black87,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+            const CommonDivider(),
+            const SizedBox(height: 10),
+
+            // Google Map section
+            const Text(
+              'Google Map',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            ElevatedButton.icon(
+              onPressed: () {
+                // Open map with temple location
+                final location = controller.location;
+                if (location['google_map_url'] != null) {
+                  // Launch URL here
+                }
+              },
+              icon: const Icon(Icons.directions),
+              label: const Text('Get Direction'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4A6BD6),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(35),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+            const CommonDivider(),
+            const SizedBox(height: 10),
+
+            // Social Media section
+            const Text(
+              'Social Media',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                if (controller.socialLinks['youtube'] != null)
+                  _buildSocialIconWithLink(
+                    "assets/images/spiritual/youtube_logo.png",
+                    controller.socialLinks['youtube'].toString(),
+                  ),
+                const SizedBox(width: 16),
+                if (controller.socialLinks['instagram'] != null)
+                  _buildSocialIconWithLink(
+                    "assets/images/spiritual/insta_logo.png",
+                    controller.socialLinks['instagram'].toString(),
+                  ),
+                const SizedBox(width: 16),
+                if (controller.socialLinks['facebook'] != null)
+                  _buildSocialIconWithLink(
+                    "assets/images/spiritual/facebook_logo.png",
+                    controller.socialLinks['facebook'].toString(),
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+            const CommonDivider(),
+            const SizedBox(height: 10),
+
+            // Contact section
+            const Text(
+              'Contact',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            Text(
+              controller.contactNumber,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: Colors.black87,
+              ),
+            ),
+
+            const SizedBox(height: 40),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildTimeSection(String title, String time) {
@@ -230,14 +263,19 @@ class AboutUs extends StatelessWidget {
     );
   }
 
-  Widget _buildSocialIcon(String image) {
-    return SizedBox(
-      width: 40,
-      height: 40,
-      child: Image.asset(
-        image,
-        width: 24,
-        height: 24,
+  Widget _buildSocialIconWithLink(String image, String url) {
+    return GestureDetector(
+      onTap: () {
+        // Launch URL here
+      },
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Image.asset(
+          image,
+          width: 24,
+          height: 24,
+        ),
       ),
     );
   }

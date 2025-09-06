@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:myapp/common/navigation/route_manager.dart';
+import 'package:myapp/utils/dio/auth_helper.dart';
 
 class SplashScreen extends StatefulWidget {
-  final VoidCallback onComplete;
-  const SplashScreen({super.key, required this.onComplete});
+  const SplashScreen({super.key});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -60,11 +60,12 @@ class _SplashScreenState extends State<SplashScreen>
 
     // After animation completes plus a small delay, navigate to main content
     Timer(const Duration(milliseconds: 3000), () {
-      // Call the callback to update state in parent
-      widget.onComplete();
-
-      // Navigate to main page
-      Navigator.of(context).pushReplacementNamed(RouteManager.mainPage);
+      // Navigate to main page if authenticated, otherwise to sign in
+      if (AuthHelper.isAuthenticated) {
+        Navigator.of(context).pushReplacementNamed(RouteManager.mainPage);
+      } else {
+        Navigator.of(context).pushReplacementNamed(RouteManager.mainPage);
+      }
     });
   }
 

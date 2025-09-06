@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/features/utsav/widgets/AppHeader.dart';
+import 'package:myapp/features/utsav/UtsavViewModel.dart';
+import 'package:myapp/features/utsav/UtsavRepository.dart';
+import 'package:myapp/utils/dio/api_service.dart';
+import '../models/EnquiryModels.dart';
 
 class EnquiryPage extends StatefulWidget {
   final String clinicName;
   final String category;
   final String subCategory;
+  final String businessId;
 
   const EnquiryPage({
     super.key,
     required this.clinicName,
     required this.category,
     required this.subCategory,
+    required this.businessId,
   });
 
   @override
@@ -20,12 +26,84 @@ class EnquiryPage extends StatefulWidget {
 class _EnquiryPageState extends State<EnquiryPage> {
   final _productController = TextEditingController();
   final _detailsController = TextEditingController();
+  late final UtsavViewModel _viewModel;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = UtsavViewModel(
+        repository: UtsavRepository(apiService: ApiService()));
+  }
 
   @override
   void dispose() {
     _productController.dispose();
     _detailsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitEnquiry() async {
+    final serviceName = _productController.text.trim();
+    final details = _detailsController.text.trim();
+
+    if (serviceName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter product/service name')),
+      );
+      return;
+    }
+
+    if (details.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter requirement details')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final request = SaveEnquiryRequest(
+        businessId: widget.businessId,
+        serviceName: serviceName,
+        details: details,
+      );
+
+      final response = await _viewModel.saveEnquiry(request);
+
+      if (response.success == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Enquiry submitted successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Clear the form
+        _productController.clear();
+        _detailsController.clear();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message ?? 'Failed to submit enquiry'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
   }
 
   @override
@@ -160,9 +238,7 @@ class _EnquiryPageState extends State<EnquiryPage> {
               Align(
                 alignment: Alignment.center,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Handle submit
-                  },
+                  onPressed: _isSubmitting ? null : _submitEnquiry,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFED3237),
                     elevation: 0,
@@ -171,16 +247,25 @@ class _EnquiryPageState extends State<EnquiryPage> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      'Submit',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'Submit',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ),

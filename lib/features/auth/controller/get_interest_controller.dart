@@ -2,13 +2,15 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../common/constant/base_url.dart';
+import '../../../utils/dio/auth_helper.dart';
 import '../screens/interest_selection_screen.dart'; // Import Interest model
 
 class GetInterestController extends GetxController {
   var interestList = <Interest>[].obs;
   var isLoading = false.obs;
 
-  final String apiUrl = 'https://gamsgroup.in/api/user/basic/interest-count';
+  final String apiUrl = '$baseUrl/user/basic/interest-count';
 
   @override
   void onInit() {
@@ -20,21 +22,12 @@ class GetInterestController extends GetxController {
     isLoading.value = true;
 
     try {
-      // ✅ Get token from SharedPreferences
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? accessToken = prefs.getString('token');
-
-      if (accessToken == null || accessToken.isEmpty) {
-        Get.snackbar("Error", "Token not found in storage");
-        isLoading.value = false;
-        return;
-      }
 
       // ✅ Make API call with Authorization header
       final response = await http.get(
         Uri.parse(apiUrl),
         headers: {
-          'Authorization': 'Bearer $accessToken',
+          'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
           'Content-Type': 'application/json',
         },
       );

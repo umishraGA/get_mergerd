@@ -1,36 +1,32 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:myapp/common/constant/endpoints.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../utils/dio/auth_helper.dart';
+
 class AddInterestController extends GetxController {
-  final String apiUrl = 'https://gamsgroup.in/api/user/basic/add-interest';
   var isSubmitting = false.obs;
 
   Future<void> submitInterests(List<String> interestIds) async {
     isSubmitting.value = true;
 
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('token');
-
-      if (token == null) {
-        Get.snackbar("Error", "Token not found");
-        isSubmitting.value = false;
-        return;
-      }
-
+      var bodyReq = json.encode({
+        "interest": interestIds,
+      });
+      print("url ========= >>>>>>> ${Endpoints.addIntrest}");
+      print("bodyReq =========== >>>>>>>> $bodyReq");
       final response = await http.post(
-        Uri.parse(apiUrl),
+        Uri.parse(Endpoints.addIntrest),
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          "interest": interestIds,
-        }),
+        body: bodyReq,
       );
-
+      print("result ========>>>>>>>> ${jsonDecode(response.body)}");
       final result = json.decode(response.body);
       if (response.statusCode == 200 && result['success'] == true) {
         Get.snackbar("Success", result['message']?.toString() ?? "Interest added successfully");

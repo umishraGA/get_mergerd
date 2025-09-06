@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:myapp/features/mainPage/widgets/MultiImagePostWidget.dart';
+import 'package:myapp/features/posts/widgets/MultiImagePostWidget.dart';
 
 class FullScreenImageViewer extends StatefulWidget {
   final String imagePath;

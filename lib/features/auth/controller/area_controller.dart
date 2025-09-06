@@ -4,7 +4,8 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../common/constant/base_url.dart';
+import '../../../common/constant/endpoints.dart';
+import '../../../utils/dio/auth_helper.dart';
 
 /// Generic model for dropdown-like data
 class LocationModel {
@@ -106,25 +107,12 @@ class LocationController extends GetxController {
     isLoading.value = true;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString("token");
 
-      if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Token not found. Please login."),
-            backgroundColor: Colors.red,
-          ),
-        );
-        isLoading.value = false;
-        return;
-      }
-
-      final url = Uri.parse('$baseUrl$endpoint');
+      final url = Uri.parse('${Endpoints.baseUrl}$endpoint');
       final response = await http.get(
         url,
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
           'Content-Type': 'application/json',
         },
       );

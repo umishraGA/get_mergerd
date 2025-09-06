@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
-import '../providers/search_provider.dart';
+import '../../spiritual/presentation/controller/all_temple_comtroller.dart';
+import '../../spiritual/presentation/screens/temple_detail_screen.dart';
 import '../widgets/AppHeader.dart';
 
 class SearchPage extends StatefulWidget {
@@ -14,11 +15,21 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  late final AllTempleController templeController;
+  List<dynamic> filteredTemples = [];
+  bool hasSearched = false;
 
   @override
   void initState() {
     super.initState();
+    // Try to find existing controller, if not found, create a new one
+    try {
+      templeController = Get.find<AllTempleController>();
+    } catch (e) {
+      templeController = Get.put(AllTempleController());
+    }
     _searchFocusNode.requestFocus();
+    filteredTemples = []; // Start with empty list
   }
 
   @override
@@ -28,101 +39,99 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => SearchProvider(),
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: Column(
-          children: [
-            AppHeader(
-              title: 'Search',
-              showMenu: false,
-              showShare: false,
-              showSearch: false,
-              onBackPressed: () => Navigator.pop(context),
-            ),
-            Expanded(
-              child: _SearchContent(
-                  searchController: _searchController,
-                  searchFocusNode: _searchFocusNode),
-            ),
-          ],
-        ),
-      ),
-    );
+  void _filterTemples(String query) {
+    setState(() {
+      hasSearched = query.isNotEmpty;
+      if (query.isEmpty) {
+        filteredTemples = []; // Clear results when search is empty
+      } else {
+        filteredTemples = templeController.temples.where((temple) {
+          final name = temple['name']?.toString().toLowerCase() ?? '';
+          return name.contains(query.toLowerCase());
+        }).toList();
+      }
+    });
   }
-}
-
-class _SearchContent extends StatelessWidget {
-  final TextEditingController searchController;
-  final FocusNode searchFocusNode;
-
-  const _SearchContent({
-    required this.searchController,
-    required this.searchFocusNode,
-  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(2),
-              border: Border.all(color: const Color(0xFFBB9F9F)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: searchController,
-              focusNode: searchFocusNode,
-              decoration: InputDecoration(
-                hintText: 'Search...',
-                focusedBorder: InputBorder.none,
-                hintStyle: const TextStyle(
-                  color: Colors.transparent,
-                  fontSize: 16,
-                ),
-                border: InputBorder.none,
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear, color: Color(0xFFBB9F9F)),
-                  onPressed: () {
-                    searchController.clear();
-                    context.read<SearchProvider>().clearSearch();
-                  },
-                ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          AppHeader(
+            title: 'Search Temples',
+            showMenu: false,
+            showShare: false,
+            showSearch: false,
+            onBackPressed: () => Navigator.pop(context),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(2),
+                border: Border.all(color: const Color(0xFFBB9F9F)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
-              onChanged: (value) {
-                context.read<SearchProvider>().search(value);
-              },
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                decoration: InputDecoration(
+                  hintText: 'Search temples...',
+                  focusedBorder: InputBorder.none,
+                  hintStyle: const TextStyle(
+                    color: Color(0xFF909090),
+                    fontSize: 16,
+                  ),
+                  border: InputBorder.none,
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.clear, color: Color(0xFFBB9F9F)),
+                    onPressed: () {
+                      _searchController.clear();
+                      _filterTemples('');
+                    },
+                  ),
+                ),
+                onChanged: _filterTemples,
+              ),
             ),
           ),
-        ),
-        Expanded(
-          child: Consumer<SearchProvider>(
-            builder: (context, searchProvider, child) {
-              if (searchProvider.isLoading) {
+          Expanded(
+            child: Obx(() {
+              if (templeController.isLoading.value) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (searchProvider.searchResults.isEmpty) {
+              if (!hasSearched) {
                 return const Center(
                   child: Text(
-                    'No results found',
+                    'Search for temples by name',
+                    style: TextStyle(
+                      color: Color(0xFF909090),
+                      fontSize: 16,
+                    ),
+                  ),
+                );
+              }
+
+              if (filteredTemples.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No temples found',
                     style: TextStyle(
                       color: Color(0xFF909090),
                       fontSize: 16,
@@ -133,49 +142,77 @@ class _SearchContent extends StatelessWidget {
 
               return ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: searchProvider.searchResults.length,
+                itemCount: filteredTemples.length,
                 itemBuilder: (context, index) {
-                  final result = searchProvider.searchResults[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFEEEEEE)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 2,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      title: Text(
-                        result.title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: Text(
-                        result.subtitle,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF909090),
-                        ),
-                      ),
-                      onTap: () {
-                        // Handle item selection
-                      },
-                    ),
-                  );
+                  final temple = filteredTemples[index];
+                  return _buildTempleItem(temple);
                 },
               );
-            },
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTempleItem(dynamic temple) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: ListTile(
+        title: Text(
+          temple['name']?.toString() ?? 'Temple',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
           ),
         ),
-      ],
+        subtitle: Text(
+          "${temple['location']?['city']?['name']?.toString() ?? 'Unknown location'}, ${temple['location']?['state']?['name']?.toString() ?? 'Unknown location'}",
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF909090),
+          ),
+        ),
+        leading: temple['image'] != null
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  temple['image'].toString(),
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.temple_hindu_outlined, size: 50),
+                ),
+              )
+            : const Icon(Icons.temple_hindu_outlined, size: 50),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TempleDetailScreen(
+                templeId: temple['_id']?.toString() ?? 'Temple',
+                // location: temple['location']['state']['name']?.toString() ?? 'Location',
+                // imagePath: temple['image']?.toString() ?? '',
+                // description: temple['about']?.toString() ?? '',
+                // followers: 10000,
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

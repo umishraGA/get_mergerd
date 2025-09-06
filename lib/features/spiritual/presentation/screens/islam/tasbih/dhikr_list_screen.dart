@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-
-import 'tasbih_model.dart';
+import 'package:get/get.dart';
+import 'package:just_audio/just_audio.dart';
+import '../../../Islam_controller/tasbih_dhikr_controller.dart';
 
 class DhikrListScreen extends StatefulWidget {
   const DhikrListScreen({super.key});
@@ -10,8 +11,57 @@ class DhikrListScreen extends StatefulWidget {
 }
 
 class _DhikrListScreenState extends State<DhikrListScreen> {
-  final int _totalCount = 17;
-  int _playingIndex = -1;
+  final TasbihController controller = Get.put(TasbihController());
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final RxInt _currentlyPlayingIndex = (-1).obs;
+  final RxBool _isPlaying = false.obs;
+
+  @override
+  void initState() {
+    super.initState();
+    controller.fetchTasbihList();
+
+    _audioPlayer.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        _currentlyPlayingIndex.value = -1;
+        _isPlaying.value = false;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _togglePlayPause(int index, String audioUrl) async {
+    try {
+      if (_currentlyPlayingIndex.value == index) {
+        // Toggle play/pause for current item
+        if (_isPlaying.value) {
+          await _audioPlayer.pause();
+          _isPlaying.value = false;
+        } else {
+          await _audioPlayer.play();
+          _isPlaying.value = true;
+        }
+      } else {
+        // New item selected - stop current and play new
+        await _audioPlayer.stop();
+        await _audioPlayer.setUrl(audioUrl);
+        await _audioPlayer.play();
+
+        // Update states
+        _currentlyPlayingIndex.value = index;
+        _isPlaying.value = true;
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Could not play audio');
+      _currentlyPlayingIndex.value = -1;
+      _isPlaying.value = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,52 +88,122 @@ class _DhikrListScreenState extends State<DhikrListScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: TasbihData.dhikrs.length,
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final dhikr = TasbihData.dhikrs[index];
-                return _DhikrItem(
-                  dhikr: dhikr,
-                  isPlaying: _playingIndex == index,
-                  onPlayPressed: () {
-                    setState(() {
-                      if (_playingIndex == index) {
-                        _playingIndex = -1; // Stop playback
-                      } else {
-                        _playingIndex = index;
-                      }
-                    });
-                  },
-                  onInfoPressed: () {
-                    _showDhikrInfo(context, dhikr);
-                  },
-                );
-              },
-            ),
-          ),
-          // Total count section
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Total: $_totalCount',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (controller.tasbihList.isEmpty) {
+          return const Center(child: Text("No dhikr found"));
+        }
+
+        return Column(
+          children: [
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: controller.tasbihList.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final dhikr = controller.tasbihList[index];
+                  return Obx(() {
+                    // Determine if this item is the currently playing one
+                    final bool isCurrentItem = _currentlyPlayingIndex.value == index;
+                    // Determine if audio is playing (only if it's the current item)
+                    final bool isPlaying = isCurrentItem && _isPlaying.value;
+
+                    return InkWell(
+                      onTap: (){},
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Column(
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    isPlaying
+                                        ? Icons.pause_circle_filled
+                                        : Icons.play_circle_filled,
+                                    color: Colors.green,
+                                    size: 28,
+                                  ),
+                                  onPressed: () => _togglePlayPause(index, dhikr.audioUrl),
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        dhikr.dikhrNameArabic,
+                                        textAlign: TextAlign.right,
+                                        style: const TextStyle(
+                                          fontFamily: 'Amiri',
+                                          fontSize: 22,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        dhikr.dikhrNameEnglish,
+                                        textAlign: TextAlign.right,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        dhikr.dikhrMeaning,
+                                        textAlign: TextAlign.right,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontStyle: FontStyle.italic,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.info_outline,
+                                    color: Colors.green,
+                                    size: 24,
+                                  ),
+                                  onPressed: () {
+                                    _showDhikrInfo(context, dhikr);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  });
+                },
               ),
             ),
-          ),
-        ],
-      ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Total: ${controller.tasbihList.length}",
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 
-  void _showDhikrInfo(BuildContext context, TasbihDhikr dhikr) {
+  void _showDhikrInfo(BuildContext context, dynamic dhikr) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -110,7 +230,7 @@ class _DhikrListScreenState extends State<DhikrListScreen> {
               ),
             ),
             Text(
-              dhikr.arabicText,
+              dhikr.dikhrNameArabic.toString(),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: 'Amiri',
@@ -120,7 +240,7 @@ class _DhikrListScreenState extends State<DhikrListScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              dhikr.transliteration,
+              dhikr.dikhrNameEnglish.toString(),
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -128,7 +248,7 @@ class _DhikrListScreenState extends State<DhikrListScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              dhikr.meaning,
+              dhikr.dikhrMeaning.toString(),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 16,
@@ -169,94 +289,6 @@ class _DhikrListScreenState extends State<DhikrListScreen> {
             const SizedBox(height: 20),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _DhikrItem extends StatelessWidget {
-  final TasbihDhikr dhikr;
-  final bool isPlaying;
-  final VoidCallback onPlayPressed;
-  final VoidCallback onInfoPressed;
-
-  const _DhikrItem({
-    required this.dhikr,
-    required this.isPlaying,
-    required this.onPlayPressed,
-    required this.onInfoPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Play button
-              IconButton(
-                icon: Icon(
-                  isPlaying
-                      ? Icons.pause_circle_filled
-                      : Icons.play_circle_filled,
-                  color: Colors.green,
-                  size: 28,
-                ),
-                onPressed: onPlayPressed,
-              ),
-
-              // Dhikr content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      dhikr.arabicText,
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontFamily: 'Amiri',
-                        fontSize: 22,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      dhikr.transliteration,
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      dhikr.meaning,
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Info button
-              IconButton(
-                icon: const Icon(
-                  Icons.info_outline,
-                  color: Colors.green,
-                  size: 24,
-                ),
-                onPressed: onInfoPressed,
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

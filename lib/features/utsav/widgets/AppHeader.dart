@@ -21,6 +21,7 @@ class AppHeader extends StatelessWidget {
   final bool showSearch;
   final String shareUrl;
   final String shareText;
+  final Function(String)? onSearchSubmitted;
 
   const AppHeader({
     super.key,
@@ -35,9 +36,10 @@ class AppHeader extends StatelessWidget {
     this.onReportBusiness,
     this.showMenu = false,
     this.showShare = true,
-    this.showSearch = true,
+    this.showSearch = false,
     this.shareUrl = 'https://happeningbazar.com',
     this.shareText = 'Check out this amazing content on Happening Bazar!',
+    this.onSearchSubmitted,
   });
 
   Future<void> _shareContent(BuildContext context) async {
@@ -90,6 +92,49 @@ class AppHeader extends StatelessWidget {
         builder: (context) => const LocationSearchPage(
         ),
       ),
+    );
+  }
+
+  void _showSearchDialog(BuildContext context) {
+    final TextEditingController searchController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Search'),
+          content: TextField(
+            controller: searchController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'Search for businesses...',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (value) {
+              if (value.trim().isNotEmpty) {
+                Navigator.of(context).pop();
+                onSearchSubmitted?.call(value.trim());
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                final query = searchController.text.trim();
+                if (query.isNotEmpty) {
+                  Navigator.of(context).pop();
+                  onSearchSubmitted?.call(query);
+                }
+              },
+              child: const Text('Search'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -215,12 +260,18 @@ class AppHeader extends StatelessWidget {
                             size: showMenu ? 26 : 24,
                           ),
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SearchPage(),
-                              ),
-                            );
+                            if (onSearchSubmitted != null) {
+                              // If callback is provided, show search dialog
+                              _showSearchDialog(context);
+                            } else {
+                              // Default behavior: navigate to SearchPage
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SearchPage(),
+                                ),
+                              );
+                            }
                           },
                           highlightColor: Colors.transparent,
                           splashColor: Colors.grey.withOpacity(0.1),

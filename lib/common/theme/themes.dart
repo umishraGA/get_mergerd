@@ -75,7 +75,7 @@ class AppThemes {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      tabBarTheme: const TabBarTheme(
+      tabBarTheme: const TabBarThemeData(
         labelColor: Color(0xFFEF3340),
         unselectedLabelColor: Colors.grey,
         indicatorColor: Color(0xFFEF3340),
@@ -89,7 +89,7 @@ class AppThemes {
         backgroundColor: Color(0xFFEF3340),
         foregroundColor: Colors.white,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -184,7 +184,7 @@ class AppThemes {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      tabBarTheme: const TabBarTheme(
+      tabBarTheme: const TabBarThemeData(
         labelColor: Color(0xFFEF3340),
         unselectedLabelColor: Colors.grey,
         indicatorColor: Color(0xFFEF3340),
@@ -198,7 +198,7 @@ class AppThemes {
         backgroundColor: Color(0xFFEF3340),
         foregroundColor: Colors.white,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),

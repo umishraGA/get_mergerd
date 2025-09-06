@@ -1,17 +1,158 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:myapp/features/common/widgets/CommonDivider.dart';
 import 'package:myapp/features/utsav/widgets/AppHeader.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../utils/locationUtils/LocationUtils.dart';
 import '../models/UtsavCategory.dart';
+import '../models/CategoryCouponsModels.dart' as CategoryModels;
+import '../models/CouponBannerModels.dart';
+import '../models/SearchModels.dart';
+import '../UtsavViewModel.dart';
+import '../UtsavRepository.dart';
+import '../../../utils/dio/api_service.dart';
 import 'UtsavItemDetailPage.dart';
 
-class UtsavCategoryPage extends StatelessWidget {
+class UtsavCategoryPage extends StatefulWidget {
   final UtsavCategory category;
+  final String? searchQuery;
 
   const UtsavCategoryPage({
     super.key,
     required this.category,
+    this.searchQuery,
   });
+
+  @override
+  State<UtsavCategoryPage> createState() => _UtsavCategoryPageState();
+}
+
+class _UtsavCategoryPageState extends State<UtsavCategoryPage> {
+  late final UtsavViewModel _viewModel;
+  List<CategoryModels.BusinessInfo> _coupons = [];
+  List<CouponBanner> _banners = [];
+  bool _isLoading = true;
+  bool _isBannerLoading = true;
+  String? _errorMessage;
+  String _locationAddress = 'Mattyari,Lucknow - 226028';
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = UtsavViewModel(
+        repository: UtsavRepository(apiService: ApiService()));
+    _loadSelectedLocation();
+    _loadCoupons();
+    _loadBanners();
+  }
+
+  Future<void> _loadSelectedLocation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final address = prefs.getString('selected_location_address');
+      
+      if (address != null) {
+        setState(() {
+          _locationAddress = address;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading selected location: $e');
+    }
+  }
+
+  Future<void> _loadCoupons() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      var coordinates = await LocationUtils.getUserCoordinates();
+      var latitude = coordinates[0];
+      var longitude = coordinates[1];
+
+      CategoryModels.CategoryCouponsResponse response;
+
+      if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
+        // Use search API
+        final searchRequest = SearchRequest(
+          search: widget.searchQuery!,
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+        );
+        response = await _viewModel.searchCoupons(searchRequest);
+      } else {
+        // Use category coupons API
+        final request = CategoryModels.CategoryCouponsRequest(
+          categoryid: widget.category.id,
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+        );
+        response = await _viewModel.getCategoryCoupons(request);
+      }
+
+      setState(() {
+        _coupons = response.data ?? [];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load coupons: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadBanners() async {
+    try {
+      setState(() {
+        _isBannerLoading = true;
+      });
+
+      var coordinates = await LocationUtils.getUserCoordinates();
+      var latitude = coordinates[0];
+      var longitude = coordinates[1];
+
+      final request = CouponBannerRequest(
+        categoryId: widget.category.id,
+        latitude: latitude,  // You may want to get this from location services
+        longitude: longitude, // You may want to get this from location services
+      );
+
+      final response = await _viewModel.getCouponBanner(request);
+
+      setState(() {
+        _banners = response.data ?? [];
+        _isBannerLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isBannerLoading = false;
+      });
+    }
+  }
+
+  void _handleSearch(String searchQuery) {
+    // Create a temporary category for search results
+    final searchCategory = UtsavCategory(
+      id: 'search',
+      name: 'Search Results',
+      imagePath: 'assets/images/utsav/categories/default.png',
+    );
+
+    // Navigate to category page with search query
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UtsavCategoryPage(
+          category: searchCategory,
+          searchQuery: searchQuery,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,53 +162,87 @@ class UtsavCategoryPage extends StatelessWidget {
         child: Column(
           children: [
             // Header with red background
-            const AppHeader(
-              title: 'Apparel & Fashion',
-              subtitle: 'Mattyari,Lucknow - 226028',
+            AppHeader(
+              title: widget.searchQuery != null && widget.searchQuery!.isNotEmpty 
+                  ? 'Search Results' 
+                  : widget.category.name,
+              subtitle: _locationAddress,
               showDropdown: true,
+              showShare: false,
+              onSearchSubmitted: _handleSearch,
             ),
 
             // Results list (scrollable content)
             Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                physics: const ClampingScrollPhysics(),
-                itemCount: 10, // Example count
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 10),
-                        _buildBannerAd(context),
-                        const SizedBox(height: 10),
-                        const Divider(
-                          height: 1,
-                          color: Color(0xFFEEEEEE),
-                          indent: 16,
-                          endIndent: 16,
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          child: Text(
-                            '200 Results for your Search',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+              child: _isLoading
+                  ? _buildCouponsShimmer()
+                  : _errorMessage != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _errorMessage!,
+                                  style: const TextStyle(color: Colors.red),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: _loadCoupons,
+                                  child: const Text('Retry'),
+                                ),
+                              ],
                             ),
                           ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.zero,
+                          physics: const ClampingScrollPhysics(),
+                          itemCount: _coupons.length + 1, // +1 for header
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              final bannerWidget = _buildBannerAd(context);
+                              final showBanner = !_isBannerLoading && _banners.isNotEmpty;
+                              
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (showBanner) ...[
+                                    const SizedBox(height: 10),
+                                    bannerWidget,
+                                    const SizedBox(height: 10),
+                                    const Divider(
+                                      height: 1,
+                                      color: Color(0xFFEEEEEE),
+                                      indent: 16,
+                                      endIndent: 16,
+                                    ),
+                                  ],
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    child: Text(
+                                      widget.searchQuery != null && widget.searchQuery!.isNotEmpty
+                                          ? '${_coupons.length} Results for "${widget.searchQuery}"'
+                                          : '${_coupons.length} Results for your Search',
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            } else {
+                              return _buildListingItem(context, _coupons[index - 1]);
+                            }
+                          },
                         ),
-                      ],
-                    );
-                  } else {
-                    return _buildListingItem(context);
-                  }
-                },
-              ),
             ),
           ],
         ),
@@ -77,37 +252,109 @@ class UtsavCategoryPage extends StatelessWidget {
 
   Widget _buildBannerAd(BuildContext context) {
     final isTablet = MediaQuery.of(context).size.width > 600;
-    return Container(
+    
+    if (_isBannerLoading) {
+      return Container(
+        height: isTablet ? 360 : 187,
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      );
+    }
+    
+    if (_banners.isEmpty) {
+      return const SizedBox.shrink(); // Hide banner section when no banners available
+    }
+    
+    final banner = _banners.first;
+    final bannerUrl = banner.mobBanner;
+    final bannerBusiness = banner.businessId;
+    
+    return GestureDetector(
+      onTap: () {
+        if (bannerBusiness != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UtsavItemDetailPage(
+                title: bannerBusiness.locationInfo?.address ?? 'Business',
+                location: bannerBusiness.locationInfo?.address ?? 'Location not available',
+                imagePath: bannerUrl ?? 'assets/images/post_image.png',
+                isVerified: true,
+                businessId: bannerBusiness.id ?? '',
+                categoryId: widget.category.id,
+                // Note: bannerBusiness is CouponBannerModels.BusinessInfo, not CategoryModels.BusinessInfo
+              ),
+            ),
+          );
+        }
+      },
+      child: Container(
         height: isTablet ? 360 : 187,
         width: double.infinity,
         margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(12),
-          image: const DecorationImage(
-            image: AssetImage(
-                'assets/images/utsav/banners/limited_time_offer.png'),
-            fit: BoxFit.fill,
-          ),
         ),
-        child: Container(
-          height: 1,
-        ));
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: bannerUrl != null && bannerUrl.isNotEmpty
+              ? Image.network(
+                  bannerUrl,
+                  fit: BoxFit.fill,
+                  width: double.infinity,
+                  height: double.infinity,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      decoration: const BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage(
+                              'assets/images/utsav/banners/limited_time_offer.png'),
+                          fit: BoxFit.fill,
+                        ),
+                      ),
+                    );
+                  },
+                )
+              : Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(
+                          'assets/images/utsav/banners/limited_time_offer.png'),
+                      fit: BoxFit.fill,
+                    ),
+                  ),
+                ),
+        ),
+      ),
+    );
   }
 
-  Widget _buildListingItem(BuildContext context) {
+  Widget _buildListingItem(BuildContext context, CategoryModels.BusinessInfo business) {
     final isTablet = MediaQuery.of(context).size.width > 600;
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const UtsavItemDetailPage(
-              title: 'Jiva Ayurvedic Clinic',
-              location:
-                  'Shop No. 51, Shalimar Building, Near Hospital, Sector 18, Noida ,Uttar Pradesh',
-              imagePath: 'assets/images/post_image.png',
+            builder: (context) => UtsavItemDetailPage(
+              title: business.companyInfo?.companyName ?? 'Business',
+              location: business.locationInfo?.address ?? 'Location not available',
+              imagePath: business.coverImage?.url ?? 'assets/images/post_image.png',
               isVerified: true,
+              businessId: business.id ?? '',
+              categoryId: widget.category.id,
+              businessInfo: business, // Pass the business info from category coupons
             ),
           ),
         );
@@ -127,10 +374,21 @@ class UtsavCategoryPage extends StatelessWidget {
                     borderRadius: const BorderRadius.all(
                       Radius.circular(12),
                     ),
-                    child: Image.asset(
-                      'assets/images/post_image.png',
-                      fit: BoxFit.cover,
-                    ),
+                    child: business.coverImage?.url != null && business.coverImage!.url!.startsWith('http')
+                        ? Image.network(
+                            business.coverImage!.url!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/images/post_image.png',
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          )
+                        : Image.asset(
+                            'assets/images/post_image.png',
+                            fit: BoxFit.cover,
+                          ),
                   ),
                 ),
                 // Add a gradient overlay at the bottom for better text visibility
@@ -183,7 +441,7 @@ class UtsavCategoryPage extends StatelessWidget {
                               bottomLeft: Radius.circular(6),
                             ),
                           ),
-                          child: const Row(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Icon(
@@ -193,8 +451,8 @@ class UtsavCategoryPage extends StatelessWidget {
                               ),
                               SizedBox(width: 2),
                               Text(
-                                '4.3',
-                                style: TextStyle(
+                                '${(business.highestRating ?? 0).toDouble()}',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
@@ -214,8 +472,8 @@ class UtsavCategoryPage extends StatelessWidget {
                               bottomRight: Radius.circular(6),
                             ),
                           ),
-                          child: const Text(
-                            '120',
+                          child: Text(
+                            '${business.ratingCount ?? 0}',
                             style: TextStyle(
                               color: Colors.black87,
                               fontWeight: FontWeight.w500,
@@ -238,11 +496,15 @@ class UtsavCategoryPage extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Text(
-                        'Jiva Ayurvedic Clinic',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Text(
+                          business.companyInfo?.companyName ?? 'Business Name',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -254,12 +516,14 @@ class UtsavCategoryPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Sector 18,Noida',
-                    style: TextStyle(
+                  Text(
+                    business.locationInfo?.address ?? 'Location not available',
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -276,7 +540,7 @@ class UtsavCategoryPage extends StatelessWidget {
                               height: 33,
                             ),
                           ),
-                          const Positioned(
+                          Positioned(
                             top: 10,
                             bottom: 0,
                             left: 60,
@@ -284,8 +548,8 @@ class UtsavCategoryPage extends StatelessWidget {
                             child: SizedBox(
                               height: 32,
                               child: Text(
-                                '10 Vouchers Available',
-                                style: TextStyle(
+                                '${business.activeCouponCount ?? 0} Vouchers Available',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
@@ -295,17 +559,17 @@ class UtsavCategoryPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            'OCT, 15 2025',
-                            style: TextStyle(
+                            'DEC 31, 2025', // Default expiry - could be fetched from business coupons API
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          Text(
+                          const Text(
                             'Valid until',
                             style: TextStyle(
                               fontSize: 12,
@@ -323,6 +587,141 @@ class UtsavCategoryPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCouponsShimmer() {
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      itemCount: 5, // Show 5 shimmer items
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          // Header with optional banner shimmer
+          return Column(
+            children: [
+              if (_isBannerLoading) ...[
+                const SizedBox(height: 10),
+                Container(
+                  height: 187,
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+                  child: Shimmer.fromColors(
+                    baseColor: Colors.grey[300]!,
+                    highlightColor: Colors.grey[100]!,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: Color(0xFFEEEEEE), indent: 16, endIndent: 16),
+              ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Shimmer.fromColors(
+                  baseColor: Colors.grey[300]!,
+                  highlightColor: Colors.grey[100]!,
+                  child: Container(
+                    height: 20,
+                    width: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+        // Coupon item shimmer
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10, left: 20, right: 20),
+          child: Column(
+            children: [
+              Shimmer.fromColors(
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                child: Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Shimmer.fromColors(
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 18,
+                      width: 250,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 14,
+                      width: 200,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          height: 33,
+                          width: 210,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        Column(
+                          children: [
+                            Container(
+                              height: 14,
+                              width: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              height: 12,
+                              width: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const CommonDivider(),
+            ],
+          ),
+        );
+      },
     );
   }
 }

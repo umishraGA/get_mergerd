@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:myapp/features/utsav/utils/VoucherUtils.dart';
 import 'package:myapp/features/utsav/widgets/AppHeader.dart';
 
 import '../models/UtsavVoucher.dart';
+import '../models/RedeemHistoryModels.dart';
+import '../UtsavViewModel.dart';
+import '../UtsavRepository.dart';
+import '../../../utils/dio/api_service.dart';
 import 'VoucherDetailPage.dart';
 
 class MyUtsavVouchersPage extends StatefulWidget {
@@ -15,11 +20,41 @@ class MyUtsavVouchersPage extends StatefulWidget {
 class _MyUtsavVouchersPageState extends State<MyUtsavVouchersPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late UtsavViewModel _viewModel;
+  
+  List<RedeemHistoryItem> _redeemHistory = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _viewModel = UtsavViewModel(
+      repository: UtsavRepository(apiService: ApiService()),
+    );
+    _loadRedeemHistory();
+  }
+
+  Future<void> _loadRedeemHistory() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      final response = await _viewModel.getRedeemHistory();
+
+      setState(() {
+        _redeemHistory = response.data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load vouchers: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -64,13 +99,33 @@ class _MyUtsavVouchersPageState extends State<MyUtsavVouchersPage>
 
             // Tab Bar View
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildAvailableVouchersTab(),
-                  _buildRedeemedVouchersTab(),
-                ],
-              ),
+              child: _isLoading
+                  ? _buildVouchersShimmer()
+                  : _errorMessage != null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _errorMessage!,
+                                style: const TextStyle(color: Colors.red),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _loadRedeemHistory,
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildAvailableVouchersTab(),
+                            _buildRedeemedVouchersTab(),
+                          ],
+                        ),
             ),
           ],
         ),
@@ -79,91 +134,115 @@ class _MyUtsavVouchersPageState extends State<MyUtsavVouchersPage>
   }
 
   Widget _buildAvailableVouchersTab() {
-    return ListView(
+    final availableVouchers = _redeemHistory
+        .where((item) => item.hasAvailableCoupons)
+        .toList();
+
+    if (availableVouchers.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Text(
+            'No available vouchers',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
       padding: const EdgeInsets.only(top: 16),
-      children: [
-        _buildVoucherCard(
-          title: 'Gift Voucher worth Rs. 500',
-          validUntil: '30 days',
-          status: 'Active',
+      itemCount: availableVouchers.length,
+      itemBuilder: (context, index) {
+        final item = availableVouchers[index];
+        return _buildVoucherCard(
+          item: item,
+          status: 'Available',
           onTap: () {
-            // Navigate to voucher detail page
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => VoucherDetailPage(
-                  voucher: UtsavVoucher(
-                    id: '1',
-                    shopName: 'SSR Ayurvedic and Panchkarma Clinic',
-                    shopAddress: 'Shop No. 123, Example Street',
-                    voucherTitle: 'Gift Voucher worth Rs. 500',
-                    voucherValue: 500,
-                    status: 'available',
-                    voucherCode: "0091993",
-                    voucherPin: "123456",
-                    claimedDate: DateTime.now(),
-                    quantity: 1,
-                    expiryDate: DateTime.now().add(const Duration(days: 30)),
-                  ),
-                ),
-              ),
-            );
+            _navigateToVoucherDetail(item, false);
           },
-        ),
-        _buildVoucherCard(
-          title: 'Gift Voucher worth Rs. 500',
-          validUntil: '30 days',
-          status: 'Active',
-          onTap: () {
-            // Navigate to voucher detail page
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => VoucherDetailPage(
-                  voucher: UtsavVoucher(
-                    id: '1',
-                    shopName: 'SSR Ayurvedic and Panchkarma Clinic',
-                    shopAddress: 'Shop No. 123, Example Street',
-                    voucherTitle: 'Gift Voucher worth Rs. 500',
-                    voucherValue: 500,
-                    status: 'available',
-                    voucherCode: "0091993",
-                    voucherPin: "123456",
-                    claimedDate: DateTime.now(),
-                    quantity: 1,
-                    expiryDate: DateTime.now().add(const Duration(days: 30)),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ],
+        );
+      },
     );
   }
 
   Widget _buildRedeemedVouchersTab() {
-    return ListView(
+    final redeemedVouchers = _redeemHistory
+        .where((item) => item.hasRedeemedCoupons)
+        .toList();
+
+    if (redeemedVouchers.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Text(
+            'No redeemed vouchers',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
       padding: const EdgeInsets.only(top: 16),
-      children: [
-        _buildVoucherCard(
-          title: 'Gift Voucher worth Rs. 500',
-          validUntil: '30 days',
+      itemCount: redeemedVouchers.length,
+      itemBuilder: (context, index) {
+        final item = redeemedVouchers[index];
+        return _buildVoucherCard(
+          item: item,
           status: 'Redeemed',
           onTap: () {
-            // Navigate to voucher detail page
+            _navigateToVoucherDetail(item, true);
           },
+        );
+      },
+    );
+  }
+
+  void _navigateToVoucherDetail(RedeemHistoryItem item, bool isRedeemed) {
+    final availableCodes = isRedeemed ? item.redeemedCoupons : item.availableCoupons;
+    final firstCode = availableCodes.isNotEmpty ? availableCodes.first : null;
+
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VoucherDetailPage(
+          voucher: UtsavVoucher(
+            id: item.user,
+            shopName: 'Business', // You might need to fetch business name
+            shopAddress: 'Business Address',
+            voucherTitle: item.couponId.title,
+            voucherValue: (item.couponId.fixedValue ?? 0).toDouble(),
+            status: isRedeemed ? 'redeemed' : 'available',
+            voucherCode: firstCode?.code ?? '',
+            voucherPin: '123456', // Default PIN
+            claimedDate: item.createdAt,
+            quantity: isRedeemed ? item.usedCoupon : item.balanceCoupon,
+            expiryDate: item.couponId.expiryDate,
+          ),
+          customerId: item.user,
+          couponId: item.id,
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildVoucherCard({
-    required String title,
-    required String validUntil,
+    required RedeemHistoryItem item,
     required String status,
     required VoidCallback onTap,
   }) {
+    final title = item.couponId.title;
+    final validUntil = item.couponId.formattedExpiryDate;
+    final displayValue = item.displayValue;
+    final quantity = status == 'Redeemed' ? item.usedCoupon : item.balanceCoupon;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: CustomPaint(
@@ -216,9 +295,9 @@ class _MyUtsavVouchersPageState extends State<MyUtsavVouchersPage>
                                   color: Colors.green.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: const Text(
-                                  '₹500',
-                                  style: TextStyle(
+                                child: Text(
+                                  displayValue,
+                                  style: const TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                     color: Color(0xFF16C47F),
@@ -237,9 +316,10 @@ class _MyUtsavVouchersPageState extends State<MyUtsavVouchersPage>
                                   color: Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: const Text(
-                                  '₹500 × 1 voucher',
-                                  style: TextStyle(
+                                child: Text(
+                                  '$displayValue × $quantity voucher'
+                                      '${quantity > 1 ? 's' : ''}',
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: Colors.black54,
                                     fontWeight: FontWeight.w500,
@@ -268,9 +348,9 @@ class _MyUtsavVouchersPageState extends State<MyUtsavVouchersPage>
                             ],
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'SSR Ayurvedic and Panchkarma Clinic',
-                            style: TextStyle(
+                          Text(
+                            title,
+                            style: const TextStyle(
                               fontSize: 14,
                               color: Colors.black54,
                               fontWeight: FontWeight.w500,
@@ -336,6 +416,37 @@ class _MyUtsavVouchersPageState extends State<MyUtsavVouchersPage>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildVouchersShimmer() {
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 16),
+      itemCount: 5, // Show 5 shimmer voucher cards
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          height: 160,
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    spreadRadius: 1,
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

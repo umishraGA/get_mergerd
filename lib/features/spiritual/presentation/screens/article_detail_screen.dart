@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:myapp/features/common/widgets/CommonDivider.dart';
 import 'package:myapp/features/spiritual/presentation/widgets/ArticleCard.dart';
 import 'package:myapp/features/utsav/widgets/AppHeader.dart';
 
 class ArticleDetailScreen extends StatelessWidget {
   final String title;
-  final String image;
-  final String time;
+  final String imagePath;
+  final String createdAt;
+  final String description;
 
   const ArticleDetailScreen({
     super.key,
     required this.title,
-    required this.image,
-    required this.time,
+    required this.imagePath,
+    required this.createdAt,
+    required this.description,
   });
 
   @override
@@ -29,21 +32,22 @@ class ArticleDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Article Image
-                    Image.asset(
-                      image,
+                    Image.network(
+                      imagePath,
                       width: double.infinity,
                       height: isTablet ? 370 : 230,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: isTablet ? 370 : 230,
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.image_not_supported, size: 50),
+                      ),
                     ),
-
-                    // Article Content
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Title
                           Text(
                             title,
                             style: const TextStyle(
@@ -51,66 +55,30 @@ class ArticleDetailScreen extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-
                           const SizedBox(height: 8),
-
-                          // Time
                           Text(
-                            time,
+                            createdAt,
                             style: const TextStyle(
                               fontSize: 14,
                               color: Colors.grey,
                             ),
                           ),
-
                           const SizedBox(height: 16),
-
-                          // Article Content
-                          const Text(
-                            'The power of Dhyanalinga in negating negative energy',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Html(
+                            data: description,
+                            style: {
+                              "body": Style(
+                                fontSize: FontSize(16),
+                                lineHeight: LineHeight(1.5),
+                              ),
+                              "p": Style(
+                                margin: Margins.only(bottom: 16),
+                              ),
+                            },
                           ),
-
-                          const SizedBox(height: 12),
-
-                          const Text(
-                            'Protect yourself from black magic with rudraksha Effects of black magic and how to combat them Importance of spiritual sadhana for protection from negativity How energy influences your life: Good and bad The science behind black magic and its psychological impact',
-                            style: TextStyle(
-                              fontSize: 16,
-                              height: 1.5,
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          const Text(
-                            'Role of Dhyanalinga in trans forming negative influences Using Dhyanalinga to overcome occult forces and negativity How to remove black magic using spiritual methods The power of Dhyanalinga in negating negative energy',
-                            style: TextStyle(
-                              fontSize: 16,
-                              height: 1.5,
-                            ),
-                          ),
-
                           const SizedBox(height: 24),
-
-                          const Text(
-                            'The power of Dhyanalinga in negating negative energy',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-
                           const CommonDivider(),
-
                           const SizedBox(height: 24),
-
-                          // Related Posts
                           const Text(
                             'Related Posts',
                             style: TextStyle(
@@ -118,52 +86,22 @@ class ArticleDetailScreen extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-
                           const SizedBox(height: 16),
-
-                          // Related Post Cards
+                          // You would replace these with actual related posts from your controller
                           ArticleCard(
-                            title:
-                                'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
-                            imagePath: image,
-                            timeAgo: '3 day ago',
-                            isHorizontal: false,
-                            onTap: () {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ArticleDetailScreen(
-                                    title:
-                                        'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
-                                    image: image,
-                                    time: '3 day ago',
-                                  ),
-                                ),
-                              );
-                            },
+                            title: 'Related Article Title',
+                            imagePath: imagePath,
+                            createdAt: '3 days ago',
+                            isHorizontal: true,
+
                           ),
-
                           const SizedBox(height: 16),
-
                           ArticleCard(
-                            title:
-                                'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
-                            imagePath: image,
-                            timeAgo: '3 day ago',
-                            isHorizontal: false,
-                            onTap: () {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ArticleDetailScreen(
-                                    title:
-                                        'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
-                                    image: image,
-                                    time: '3 day ago',
-                                  ),
-                                ),
-                              );
-                            },
+                            title: 'Another Related Article',
+                            imagePath: imagePath,
+                            createdAt: '5 days ago',
+                            isHorizontal: true,
+
                           ),
                         ],
                       ),

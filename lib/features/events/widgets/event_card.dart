@@ -19,12 +19,12 @@ class EventCard extends StatelessWidget {
     final isTablet = MediaQuery.of(context).size.width > 600;
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EventDetailScreen(event: event),
-          ),
-        );
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (context) => EventDetailScreen(event: event),
+        //   ),
+        // );
       },
       child: Container(
         margin: EdgeInsets.only(bottom: isFeatured ? 0 : 12),

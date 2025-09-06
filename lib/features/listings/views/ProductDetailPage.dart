@@ -197,6 +197,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                         clinicName: widget.clinic,
                                         category: widget.name,
                                         subCategory: widget.name,
+                                        businessId: '',
                                       )),
                             );
                           },

@@ -1,36 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/core/theme/AppTextStyles.dart';
 import 'package:myapp/features/listings/widgets/GalleryGrid.dart';
-import 'package:myapp/features/mainPage/widgets/PostCardWidget.dart';
+import 'package:myapp/features/posts/widgets/PostCardWidget.dart';
 import 'package:myapp/features/spiritual/presentation/screens/following_screen.dart';
 import 'package:myapp/features/utsav/widgets/AppHeader.dart';
-
+import 'package:get/get.dart';
+import '../controller/temple_detail_controller.dart';
 import '../widgets/AboutUs.dart';
 import '../widgets/DarshanPage.dart';
 import '../widgets/DonationPage.dart';
 
 class TempleDetailScreen extends StatefulWidget {
-  final String templeName;
-  final String location;
-  final String imagePath;
-  final String description;
-  final int followers;
-
+  final String templeId;
   const TempleDetailScreen({
     super.key,
-    required this.templeName,
-    required this.location,
-    required this.imagePath,
-    required this.description,
-    required this.followers,
+    required this.templeId,
   });
-
   @override
   State<TempleDetailScreen> createState() => _TempleDetailScreenState();
 }
 
 class _TempleDetailScreenState extends State<TempleDetailScreen>
     with TickerProviderStateMixin {
+  final TempleDetailController templeDetailController =Get.put(TempleDetailController());
   late TabController _tabController;
   int _selectedTab = 0;
 
@@ -119,7 +111,7 @@ class _TempleDetailScreenState extends State<TempleDetailScreen>
                           Tab(text: 'Donation'),
                           Tab(text: 'Darshan'),
                           Tab(text: 'Visit'),
-                          Tab(text: 'Posts'),
+                          // Tab(text: 'Posts'),
                         ],
                       ),
                     ),
@@ -130,25 +122,50 @@ class _TempleDetailScreenState extends State<TempleDetailScreen>
               body: TabBarView(
                 controller: _tabController,
                 children: [
-                  const AboutUs(),
-                  GalleryGrid(
-                    images: [
-                      widget.imagePath,
-                      widget.imagePath,
-                      widget.imagePath,
-                      widget.imagePath,
-                    ],
-                    isShowOtherDetails: false,
+                    AboutUs(templeId: widget.templeId),
+                    GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1,
+            ),
+            itemCount: templeDetailController.galleryImages.length,
+            itemBuilder: (context, index) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  templeDetailController.galleryImages[index].toString(),
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.broken_image),
                   ),
-                  DonationPage(imagePath: widget.imagePath),
-                  const DarshanPage(),
+                ),
+              );
+            },
+          ),
+                  DonationPage(templeId: widget.templeId,),
+                   DarshanPage(templeId: widget.templeId,),
                   _buildVisitTab(),
                   _buildPostsTab(),
                 ],
               ),
             ),
             if (_showingPostDetail)
-              PostCardWidget.buildPostDetailView(
+              PostCardWidget.buildPostDetailViewFromMap(
                 context: context,
                 postDetail: _postDetail,
                 showingPostDetail: _showingPostDetail,
@@ -182,35 +199,80 @@ class _TempleDetailScreenState extends State<TempleDetailScreen>
       ),
     );
   }
-
+//image of temple in temple detail page above name of temple
   Widget _buildHeader() {
-    return Stack(
-      children: [
-        // Temple image
-        Padding(
+    return Obx(() {
+      // Get the controller instance
+      final TempleDetailController controller = Get.put(TempleDetailController());
+
+      return Stack(
+        children: [
+          // Temple image from API
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                widget.imagePath,
+              child: controller.templeImage.isNotEmpty
+                  ? Image.network(
+                controller.templeImage,
                 fit: BoxFit.cover,
+                height: 200, // Set a fixed height or use aspect ratio
+                width: double.infinity,
+                loadingBuilder: (BuildContext context, Widget child,
+                    ImageChunkEvent? loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (BuildContext context, Object error,
+                    StackTrace? stackTrace) {
+                  return Container(
+                    color: Colors.grey[200],
+                    child: const Icon(
+                      Icons.broken_image,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
+                  );
+                },
+              )
+                  : Container(
+                color: Colors.grey[200],
+                child: const Center(
+                  child: Icon(
+                    Icons.image,
+                    size: 50,
+                    color: Colors.grey,
+                  ),
+                ),
               ),
-            )),
-      ],
-    );
+            ),
+          ),
+        ],
+      );
+    });
   }
-
+//name of temple location of temple  like post visits
   Widget _buildStatsRow() {
+    final TempleDetailController controller = Get.put(TempleDetailController());
+
     return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        child: Column(children: [
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      child: Column(
+        children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Text(
-                    widget.templeName,
+                    controller.templeName, // Use temple name from controller
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 20,
@@ -226,7 +288,8 @@ class _TempleDetailScreenState extends State<TempleDetailScreen>
                 ],
               ),
               Text(
-                widget.location,
+                // Construct location string from city, state, country
+                '${controller.city}, ${controller.state}, ${controller.country}',
                 style: const TextStyle(
                   color: Colors.grey,
                   fontSize: 16,
@@ -250,9 +313,10 @@ class _TempleDetailScreenState extends State<TempleDetailScreen>
               _buildStatItem('10.8k', 'Likes', () {}),
             ],
           ),
-        ]));
+        ],
+      ),
+    );
   }
-
   Widget _buildStatItem(String count, String label, Function()? callback) {
     return GestureDetector(
       onTap: callback,

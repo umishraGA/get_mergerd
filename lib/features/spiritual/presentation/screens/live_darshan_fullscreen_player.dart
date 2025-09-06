@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:myapp/core/services/orientation_service.dart';
 import 'package:myapp/features/mainPage/data/open_video_from.dart';
-import 'package:myapp/features/mainPage/widgets/VideoPostWidget.dart';
+import 'package:myapp/features/posts/widgets/VideoPostWidget.dart';
 
 class LiveDarshanFullscreenPlayer extends StatefulWidget {
   final String videoUrl;

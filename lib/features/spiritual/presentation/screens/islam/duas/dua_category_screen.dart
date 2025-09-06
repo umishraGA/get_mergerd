@@ -1,14 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
-class DuaCategoryScreen extends StatelessWidget {
-  final String title;
-  final int count;
+import '../../../Islam_controller/dua_detail_controller.dart';
+import 'dua_detail_screen.dart';
+
+class DuaCategoryScreen extends StatefulWidget {
+  final String id;
+  final String image; // image URL or asset path
+  final String title; // added title if needed
 
   const DuaCategoryScreen({
     super.key,
+    required this.id,
+    required this.image,
     required this.title,
-    required this.count,
   });
+
+  @override
+  State<DuaCategoryScreen> createState() => _DuaCategoryScreenState();
+}
+
+class _DuaCategoryScreenState extends State<DuaCategoryScreen> {
+  final DuaDetailController duaDetailController =
+      Get.put(DuaDetailController());
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    duaDetailController.fetchDuasByCategory(widget.id);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,43 +57,40 @@ class DuaCategoryScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Banner image with title
+          // 🖼️ Banner image with gradient and title
           Container(
             height: 150,
             width: double.infinity,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage(
-                  _getBannerImagePath(title),
-                ),
+                image: widget.image.startsWith('http')
+                    ? NetworkImage(widget.image)
+                    : AssetImage(widget.image) as ImageProvider,
                 fit: BoxFit.cover,
               ),
             ),
             child: Stack(
               children: [
-                // Gradient overlay
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                       colors: [
-                        Colors.black.withOpacity(0.7),
-                        Colors.black.withOpacity(0.3),
+                        Colors.black.withOpacity(0.6),
+                        Colors.transparent,
                       ],
                     ),
                   ),
                 ),
-
-                // Title
                 Positioned(
                   left: 24,
                   bottom: 24,
                   child: Text(
-                    title,
+                    widget.title,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 28,
+                      fontSize: 26,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -82,132 +99,76 @@ class DuaCategoryScreen extends StatelessWidget {
             ),
           ),
 
-          // List of duas
           Expanded(
-            child: ListView.separated(
-              padding: EdgeInsets.zero,
-              itemCount: _getDuasList(title).length,
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final dua = _getDuasList(title)[index];
-                return ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  leading: Text(
-                    '${index + 1}',
-                    style: const TextStyle(
-                      color: Colors.black54,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
+            child: Obx(() {
+              if (duaDetailController.isLoading.value) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (duaDetailController.duaList.isEmpty) {
+                return const Center(child: Text('No Duas found.'));
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: duaDetailController.duaList.length,
+                separatorBuilder: (context, index) => const Divider(
+                  color: Colors.grey,
+                  thickness: 0.5,
+                  indent: 10,
+                  endIndent: 10,
+                ),
+                itemBuilder: (context, index) {
+                  final dua = duaDetailController.duaList[index];
+
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DuaDetailScreen(dua: dua),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 22,
+                            backgroundColor: Colors.blueAccent.withOpacity(0.1),
+                            child: Text(
+                              dua.sortingNo,
+                              style: const TextStyle(
+                                color: Colors.blueAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              dua.titleEnglish,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.black54),
+                        ],
+                      ),
                     ),
-                  ),
-                  title: Text(
-                    dua,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  trailing: const Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: Colors.black54,
-                  ),
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/spiritual/islam/duas/detail',
-                      arguments: {
-                        'categoryTitle': title,
-                        'duaTitle': dua,
-                        'duaIndex': index,
-                      },
-                    );
-                  },
-                );
-              },
-            ),
+                  );
+                },
+              );
+            }),
           ),
+
+
         ],
       ),
     );
-  }
-
-  String _getBannerImagePath(String category) {
-    return 'assets/images/spiritual/islam/duas/${category.toLowerCase().replaceAll(' & ', '_').replaceAll(' ', '_')}.jpg';
-  }
-
-  List<String> _getDuasList(String category) {
-    if (category == 'Morning & Evening') {
-      return [
-        'Waking Up',
-        'Before sleeping',
-        'When turning over during sleep',
-        'Upon experience unrest, fear, apprehensiveness during sleep',
-        'Upon seeing a good or bad dream Up',
-        'Remembrance in the morning and evening',
-      ];
-    } else if (category == 'Prayer & Daily Life') {
-      return [
-        'Before beginning wudu',
-        'After completing wudu',
-        'When entering the mosque',
-        'When leaving the mosque',
-        'Before reciting the Quran',
-        'When hearing the adhan',
-        'When breaking fast',
-        'Before eating',
-      ];
-    } else if (category == 'Joy & Stress') {
-      return [
-        'For anxiety and sorrow',
-        'For depression and grief',
-        'For stress relief',
-      ];
-    } else if (category == 'Sickness & Death') {
-      return [
-        'When visiting the sick',
-        'For protection from diseases',
-        'For fever and pain',
-        'For healing',
-        'When someone dies',
-        'At the time of burial',
-        'When visiting graves',
-        'For the deceased',
-      ];
-    } else if (category == 'Nature') {
-      return [
-        'When it rains',
-        'After rainfall',
-        'When there is wind',
-        'When seeing the new moon',
-        'When seeing lightning',
-        'When hearing thunder',
-        'When seeing the stars',
-        'When looking at the sky',
-      ];
-    } else if (category == 'Normal Routine') {
-      return [
-        'When entering the house',
-        'When leaving the house',
-        'When entering the bathroom',
-        'When leaving the bathroom',
-        'When getting dressed',
-        'When looking in the mirror',
-        'When entering the market',
-        'When finishing a gathering',
-      ];
-    } else if (category == 'Praising for Kindness') {
-      return [
-        'For the one who does you a favor',
-        'When someone says they love you for Allah\'s sake',
-        'For the one who offers you food or drink',
-        'For the host',
-        'For the one who lends you money',
-      ];
-    } else {
-      return [];
-    }
   }
 }

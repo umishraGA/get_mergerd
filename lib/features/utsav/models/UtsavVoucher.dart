@@ -1,5 +1,9 @@
 class UtsavVoucher {
   final String id;
+  final String? _id; // MongoDB _id field
+  
+  /// Get the MongoDB _id field
+  String? get objectId => _id;
   final String shopName;
   final String shopAddress;
   final String voucherTitle;
@@ -13,6 +17,7 @@ class UtsavVoucher {
 
   UtsavVoucher({
     required this.id,
+    String? mongoId,
     required this.shopName,
     required this.shopAddress,
     required this.voucherTitle,
@@ -23,7 +28,7 @@ class UtsavVoucher {
     this.expiryDate,
     required this.status,
     required this.quantity,
-  });
+  }) : _id = mongoId;
 
   // Create a voucher with claimed status - generates voucher code and pin
   UtsavVoucher claimVoucher() {
@@ -35,6 +40,7 @@ class UtsavVoucher {
 
     return UtsavVoucher(
       id: id,
+      mongoId: _id,
       shopName: shopName,
       shopAddress: shopAddress,
       voucherTitle: voucherTitle,
@@ -52,6 +58,7 @@ class UtsavVoucher {
   factory UtsavVoucher.fromMap(Map<String, dynamic> map) {
     return UtsavVoucher(
       id: map['id'].toString(),
+      mongoId: map['_id']?.toString(),
       shopName: map['shopName'].toString(),
       shopAddress: map['shopAddress'].toString(),
       voucherTitle: map['voucherTitle'].toString(),
@@ -73,6 +80,7 @@ class UtsavVoucher {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      '_id': _id,
       'shopName': shopName,
       'shopAddress': shopAddress,
       'voucherTitle': voucherTitle,

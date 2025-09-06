@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:myapp/features/auth/screens/sign_up_screen.dart';
+import 'package:myapp/utils/dio/auth_helper.dart';
+import '../../mainPage/MainPage.dart';
 import '../controller/sign_up_controller.dart';
 import 'otp_verification_screen.dart';
 
@@ -193,6 +196,10 @@ class _MobileVerificationScreenState extends State<MobileVerificationScreen> {
                         ),
                         child: TextFormField(
                           controller: _mobileController,
+                          enableSuggestions: true,
+                          autofillHints: const [
+                            AutofillHints.telephoneNumber,
+                          ],
                           decoration: InputDecoration(
                             labelText: 'Mobile Number',
                             hintText: 'Enter 10-digit number',
@@ -316,11 +323,6 @@ class _MobileVerificationScreenState extends State<MobileVerificationScreen> {
                                   "Error", "You must agree to the terms.");
                               return;
                             }
-
-                            await signupOtpController.sendSignupOtp(
-                              context, // ✅ pass context
-                              _mobileController.text,
-                            );
 
                             bool success = await signupOtpController
                                 .sendSignupOtp(context, _mobileController.text);

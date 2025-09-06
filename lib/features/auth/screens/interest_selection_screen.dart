@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/get_interest_controller.dart';
@@ -46,109 +47,91 @@ class InterestSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 8.0),
-          child: IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          title: Obx(() {
+            final count = getSelectedCount(controller.interestList);
+            return Column(
+              children: [
+                const Text(
+                  'Tell Us What You Love',
+                  style: TextStyle(
+                    color: Color(0xFF333333),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Selected: $count of 3 required',
+                  style: TextStyle(
+                    color: count >= 3 ? const Color(0xFF4CAF50) : Colors.grey.shade600,
+                    fontSize: 12,
+                    fontWeight: count >= 3 ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ],
+            );
+          }),
+          toolbarHeight: 80,
+        ),
+        body: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withOpacity(0.03),
                     blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: const Icon(Icons.arrow_back, color: Color(0xFF426DB3), size: 20),
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        centerTitle: true,
-        title: Obx(() {
-          final count = getSelectedCount(controller.interestList);
-          return Column(
-            children: [
-              const Text(
-                'Tell Us What You Love',
+              child: Text(
+                'Choose at least 3 interests, and we\'ll curate the best content for your posts.',
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Color(0xFF333333),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                  fontSize: 14,
+                  height: 1.5,
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Selected: $count of 3 required',
-                style: TextStyle(
-                  color: count >= 3 ? const Color(0xFF4CAF50) : Colors.grey.shade600,
-                  fontSize: 12,
-                  fontWeight: count >= 3 ? FontWeight.w600 : FontWeight.normal,
-                ),
-              ),
-            ],
-          );
-        }),
-        toolbarHeight: 80,
-      ),
-      body: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Text(
-              'Choose at least 3 interests, and we\'ll curate the best content for your feed.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 14,
-                height: 1.5,
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Obx(() {
-              if (controller.isLoading.value) {
-                return const Center(child: CircularProgressIndicator());
-              }
+            const SizedBox(height: 16),
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              return GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                physics: const BouncingScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.85,
-                ),
-                itemCount: controller.interestList.length,
-                itemBuilder: (context, index) {
-                  return Obx(() => _buildInterestItem(controller.interestList[index]));
-                },
-              );
-            }),
-          ),
-          Obx(() => _buildBottomBar(controller.interestList, context)),
-        ],
+                return GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.78,
+                  ),
+                  itemCount: controller.interestList.length,
+                  itemBuilder: (context, index) {
+                    return Obx(() => _buildInterestItem(controller.interestList[index]));
+                  },
+                );
+              }),
+            ),
+            Obx(() => _buildBottomBar(controller.interestList, context)),
+          ],
+        ),
       ),
     );
   }
@@ -194,7 +177,7 @@ class InterestSelectionScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       image: DecorationImage(
                         image: interest.imageUrl.startsWith("http")
-                            ? NetworkImage(interest.imageUrl)
+                            ? CachedNetworkImageProvider(interest.imageUrl)
                             : AssetImage(interest.imageUrl) as ImageProvider<Object>,
                         fit: BoxFit.cover,
                       ),
@@ -284,16 +267,16 @@ class InterestSelectionScreen extends StatelessWidget {
                     .toList();
 
                 print("Selected Interest IDs: $selectedIds");
-             addInterestController.submitInterests(selectedIds);
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SuccessScreen(),
-                  ),
-                );
-              }
-                  : null,
+                addInterestController.submitInterests(selectedIds).then((_){
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SuccessScreen(),
+                    ),
+                    (route) => false,
+                  );
+                });
+              } : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF426DB3),
                 disabledBackgroundColor: const Color(0xFF426DB3).withOpacity(0.5),

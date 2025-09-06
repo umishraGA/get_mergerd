@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:myapp/core/theme/AppTextStyles.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../posts/data/PostPollViewModel.dart';
 import '../models/comment_model.dart';
 import '../services/comments_service.dart';
 
@@ -10,6 +11,7 @@ class CommentItemWidget extends StatefulWidget {
   final String postId;
   final VoidCallback? onReply;
   final String? autoExpandReplyId;
+  final Function? onCommentUpdated;
 
   const CommentItemWidget({
     super.key,
@@ -17,6 +19,7 @@ class CommentItemWidget extends StatefulWidget {
     required this.postId,
     this.onReply,
     this.autoExpandReplyId,
+    this.onCommentUpdated,
   });
 
   @override
@@ -25,9 +28,11 @@ class CommentItemWidget extends StatefulWidget {
 
 class _CommentItemWidgetState extends State<CommentItemWidget> {
   final CommentsService _commentsService = CommentsService();
+  final PostPollViewModel _viewModel = PostPollViewModel();
   bool _showReplies = false;
   late List<CommentModel> _replies;
   bool _isEditing = false;
+  bool _isLoading = false;
   late TextEditingController _editController;
 
   @override
@@ -113,12 +118,9 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
             ),
             TextButton(
               child: const Text('Delete', style: TextStyle(color: Colors.red)),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
-                _commentsService.deleteComment(
-                    widget.postId, widget.comment.id);
-                // Force a rebuild of parent widget
-                if (mounted) setState(() {});
+                await _deleteComment();
               },
             ),
           ],
@@ -127,16 +129,134 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
     );
   }
 
-  void _saveEdit() {
-    if (_editController.text.trim().isNotEmpty) {
-      _commentsService.editComment(
-        widget.postId,
+  Future<void> _deleteComment() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await _viewModel.deleteComment(widget.comment.id);
+      
+      if (response.success == true && mounted) {
+        // Remove from local service
+        _commentsService.deleteComment(widget.postId, widget.comment.id);
+        
+        // Notify parent to refresh comments
+        widget.onCommentUpdated?.call();
+        
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Comment deleted successfully'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Failed to delete comment: '
+                '${response.message ?? "Unknown error"}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error deleting comment: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete comment: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _saveEdit() async {
+    if (_editController.text.trim().isEmpty) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await _viewModel.updateComment(
         widget.comment.id,
         _editController.text.trim(),
       );
-      setState(() {
-        _isEditing = false;
-      });
+      
+      if (response.success == true && mounted) {
+        // Update local service
+        _commentsService.editComment(
+          widget.postId,
+          widget.comment.id,
+          _editController.text.trim(),
+        );
+        
+        setState(() {
+          _isEditing = false;
+        });
+        
+        // Notify parent to refresh comments
+        widget.onCommentUpdated?.call();
+        
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Comment updated successfully'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Failed to update comment: '
+                '${response.message ?? "Unknown error"}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error updating comment: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update comment: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -191,8 +311,15 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.check),
-                                onPressed: _saveEdit,
+                                icon: _isLoading 
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.check),
+                                onPressed: _isLoading ? null : _saveEdit,
                                 color: Theme.of(context).primaryColor,
                               ),
                               IconButton(
@@ -279,8 +406,10 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
                           onTap: _toggleReplies,
                           child: Text(
                             _showReplies
-                                ? 'Hide ${_replies.length} ${_replies.length == 1 ? 'reply' : 'replies'}'
-                                : 'View ${_replies.length} ${_replies.length == 1 ? 'reply' : 'replies'}',
+                                ? 'Hide ${_replies.length} '
+                                  '${_replies.length == 1 ? 'reply' : 'replies'}'
+                                : 'View ${_replies.length} '
+                                  '${_replies.length == 1 ? 'reply' : 'replies'}',
                             style: TextStyle(
                               fontSize: 12,
                               color: Theme.of(context).primaryColor,
@@ -318,6 +447,7 @@ class _CommentItemWidgetState extends State<CommentItemWidget> {
                   child: CommentItemWidget(
                     comment: _replies[index],
                     postId: widget.postId,
+                    onCommentUpdated: widget.onCommentUpdated,
                   ),
                 );
               },

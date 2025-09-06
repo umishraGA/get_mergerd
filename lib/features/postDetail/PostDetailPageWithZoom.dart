@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:myapp/features/posts/widgets/NetworkImageWidget.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:myapp/core/services/orientation_service.dart';
 import 'package:myapp/core/theme/AppTextStyles.dart';
 import 'package:myapp/features/comments/comments.dart';
-import 'package:myapp/features/mainPage/widgets/MultiImagePostWidget.dart';
-import 'package:myapp/features/mainPage/widgets/PostCardWidget.dart';
-import 'package:myapp/features/mainPage/widgets/ReactionDisplayWidget.dart';
-import 'package:myapp/features/mainPage/widgets/VideoPostWidget.dart';
+import 'package:myapp/features/posts/widgets/MultiImagePostWidget.dart';
+import 'package:myapp/features/posts/widgets/PostCardWidget.dart';
+import 'package:myapp/features/posts/widgets/ReactionDisplayWidget.dart';
+import 'package:myapp/features/posts/widgets/VideoPostWidget.dart';
+import 'package:myapp/features/posts/models/post_poll_models.dart';
+import 'package:myapp/features/posts/data/PostPollViewModel.dart';
+import 'package:myapp/features/posts/controller/post_controller.dart';
+import 'package:myapp/features/posts/controller/reaction_controller.dart';
+import 'package:provider/provider.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'widgets/SimpleReadMoreWidget.dart';
 
@@ -35,6 +43,21 @@ class PostDetailPageWithZoom extends StatefulWidget {
   final String? videoPath;
   final bool isFollowing;
   final Function(bool)? onFollowChanged;
+  final String? userId;
+  // New parameters for API integration
+  final PostPollItem? postData;
+  final String? postId;
+  final int? initialLikeCount;
+  final int? initialCommentCount;
+  final bool? isLikedByUser;
+  final bool? isBookmarked;
+  final UserReaction? userReaction;
+  
+  // Callback functions to notify parent of changes
+  final Function(int likeCount, bool isLiked, ReactionType? reaction)? onLikeChanged;
+  final Function(int commentCount)? onCommentCountChanged;
+  final Function(bool isBookmarked)? onBookmarkChanged;
+  final VoidCallback? onShare;
 
   const PostDetailPageWithZoom({
     super.key,
@@ -50,6 +73,20 @@ class PostDetailPageWithZoom extends StatefulWidget {
     this.videoPath,
     this.isFollowing = false,
     this.onFollowChanged,
+    this.userId,
+    // New optional parameters
+    this.postData,
+    this.postId,
+    this.initialLikeCount,
+    this.initialCommentCount,
+    this.isLikedByUser,
+    this.isBookmarked,
+    this.userReaction,
+    // Callback functions
+    this.onLikeChanged,
+    this.onCommentCountChanged,
+    this.onBookmarkChanged,
+    this.onShare,
   });
 
   @override
@@ -61,6 +98,11 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
   final TextEditingController _commentController = TextEditingController();
   final CommentsService _commentsService = CommentsService();
   final OrientationService _orientationService = OrientationService();
+  final PostPollViewModel _viewModel = PostPollViewModel();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  
+  // Use common reaction controller
+  late final ReactionController _reactionController;
   bool _isLiked = false;
   bool _isFollowing = false;
   int _likeCount = 23; // Default like count
@@ -73,6 +115,8 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
   bool _isBookmarked = false; // Track bookmark state
   ReactionType? _selectedReaction; // Track selected reaction
   bool _showReactionBar = false; // Control visibility of reaction selector
+  bool _isProcessingLike = false; // Prevent multiple simultaneous like requests
+  bool _isProcessingBookmark = false; // Prevent multiple simultaneous bookmark requests
   final GlobalKey _likeButtonKey =
       GlobalKey(); // Reference for positioning reaction bar
 
@@ -89,6 +133,55 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
     super.initState();
     _loadCommentCount();
     _isFollowing = widget.isFollowing;
+    
+    // Initialize common reaction controller
+    _reactionController = context.read<ReactionController>();
+    
+    // Initialize state from widget parameters
+    _likeCount = widget.initialLikeCount ?? 23;
+    _commentCount = widget.initialCommentCount ?? _commentCount;
+    _isLiked = widget.isLikedByUser ?? false;
+    _isBookmarked = widget.isBookmarked ?? false;
+    
+    // Initialize reaction from API data
+    if (widget.userReaction != null) {
+      _selectedReaction = _mapApiReactionToReactionType(widget.userReaction!);
+      _isLiked = true;
+    }
+    
+    // Initialize reaction controller with post data
+    if (widget.postId != null) {
+      // Check if state already exists in controller
+      final existingState = _reactionController.getPostReactionState(widget.postId!);
+      
+      if (existingState != null) {
+        // Use existing state from controller
+        _likeCount = existingState.likeCount;
+        _isLiked = existingState.isLiked;
+        _selectedReaction = existingState.selectedReaction;
+        _isBookmarked = existingState.isBookmarked;
+        if (existingState.commentCount > 0) {
+          _commentCount = existingState.commentCount;
+        }
+        print('PostDetailPageWithZoom: Using existing state from ReactionController - likes: $_likeCount, isLiked: $_isLiked, reaction: $_selectedReaction');
+      } else {
+        // Initialize with new state
+        _reactionController.initializePostReaction(
+          widget.postId!,
+          initialLikeCount: _likeCount,
+          isLikedByUser: _isLiked,
+          userReaction: _selectedReaction,
+          isBookmarked: _isBookmarked,
+        );
+        print('PostDetailPageWithZoom: Initialized new state in ReactionController - likes: $_likeCount, isLiked: $_isLiked, reaction: $_selectedReaction');
+      }
+      
+      // Listen to reaction updates
+      _reactionController.addListener(_onReactionUpdated);
+    }
+
+    // Initialize audio player
+    _initAudio();
 
     // Set orientation based on media type
     _setOrientationBasedOnMediaType();
@@ -155,8 +248,17 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
     }
   }
 
+  Future<void> _initAudio() async {
+    try {
+      await _audioPlayer.setAsset('assets/audio/like_audio.mp3');
+    } catch (e) {
+      debugPrint('Error initializing like audio: $e');
+    }
+  }
+
   void _loadCommentCount() {
-    final String postId = widget.postImage.hashCode.toString();
+    // Use actual post ID if available, otherwise fallback to hash
+    final String postId = widget.postId ?? widget.postImage.hashCode.toString();
     _commentCount = _commentsService.getCommentCount(postId);
   }
 
@@ -165,7 +267,9 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
     _commentController.dispose();
     _animationController.dispose();
     _commentsService.removeListener(_updateCommentCount);
+    _reactionController.removeListener(_onReactionUpdated);
     _transformationController.dispose();
+    _audioPlayer.dispose();
 
     // Reset to portrait mode when leaving the page
     _orientationService.setPortraitMode();
@@ -183,29 +287,94 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
     super.dispose();
   }
 
+  void _onReactionUpdated() {
+    if (widget.postId != null) {
+      final updates = _reactionController.reactionUpdates;
+      if (updates.containsKey(widget.postId!)) {
+        final state = updates[widget.postId!]!;
+        if (mounted) {
+          setState(() {
+            _likeCount = state.likeCount;
+            _isLiked = state.isLiked;
+            _selectedReaction = state.selectedReaction;
+            _isBookmarked = state.isBookmarked;
+            if (state.commentCount > 0) {
+              _commentCount = state.commentCount;
+            }
+          });
+        }
+      }
+    }
+  }
+
   void _updateCommentCount() {
-    final String postId = widget.postImage.hashCode.toString();
+    // Use actual post ID if available, otherwise fallback to hash
+    final String postId = widget.postId ?? widget.postImage.hashCode.toString();
     final newCount = _commentsService.getCommentCount(postId);
 
     if (newCount != _commentCount) {
       setState(() {
         _commentCount = newCount;
       });
+      
+      // Update reaction controller
+      if (widget.postId != null) {
+        _reactionController.updateCommentCount(widget.postId!, newCount);
+      }
+      
+      // Notify parent of comment count change
+      widget.onCommentCountChanged?.call(_commentCount);
     }
   }
 
-  void _toggleLike() {
+  void _toggleLike() async {
+    if (_isProcessingLike || widget.postId == null) return;
+    
     setState(() {
-      _isLiked = !_isLiked;
-
-      if (_isLiked) {
-        _selectedReaction = ReactionType.heart;
-        _likeCount += 1;
-      } else {
-        _selectedReaction = null;
-        _likeCount = _likeCount > 0 ? _likeCount - 1 : 0;
-      }
+      _isProcessingLike = true;
     });
+
+    try {
+      final success = await _reactionController.toggleLike(
+        widget.postId!,
+        widget.postData,
+        widget.mediaType,
+      );
+      
+      // Get current state for comparison
+      final currentState = _reactionController.getPostReactionState(widget.postId!);
+      if (success && currentState != null && currentState.isLiked && !_isLiked) {
+        _playLikeSound();
+      }
+      
+      // Get updated state from controller
+      final state = _reactionController.getPostReactionState(widget.postId!);
+      if (state != null) {
+        // Notify parent of like change
+        print('PostDetailPageWithZoom: Calling onLikeChanged with likes: ${state.likeCount}, isLiked: ${state.isLiked}, reaction: ${state.selectedReaction}');
+        widget.onLikeChanged?.call(state.likeCount, state.isLiked, state.selectedReaction);
+      }
+
+
+    } catch (e) {
+      debugPrint('Error toggling like: $e');
+
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingLike = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _playLikeSound() async {
+    try {
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.play();
+    } catch (e) {
+      debugPrint('Error playing like sound: $e');
+    }
   }
 
   void _toggleFollow() {
@@ -223,8 +392,8 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
   void _handleSendComment(String comment) {
     if (comment.trim().isEmpty) return;
 
-    // Generate a unique post ID based on the post image
-    final String postId = widget.postImage.hashCode.toString();
+    // Use actual post ID if available, otherwise fallback to hash
+    final String postId = widget.postId ?? widget.postImage.hashCode.toString();
 
     final newComment = CommentModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -239,7 +408,9 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
   }
 
   void _showComments(BuildContext context, String postId) {
-    CommentsBottomSheet.show(context, postId);
+    // Use actual post ID if available, otherwise fallback to hash
+    final String actualPostId = widget.postId ?? postId;
+    CommentsBottomSheet.show(context, actualPostId);
   }
 
   void _toggleDetails() {
@@ -329,13 +500,134 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
       // Play animation
       _animationController.reset();
       _animationController.forward();
+      
+      // Notify parent of like change
+      widget.onLikeChanged?.call(_likeCount, _isLiked, _selectedReaction);
     }
   }
 
-  void _toggleBookmark() {
+  void _toggleBookmark() async {
+    if (_isProcessingBookmark || widget.postId == null) return;
+    
     setState(() {
-      _isBookmarked = !_isBookmarked;
+      _isProcessingBookmark = true;
     });
+
+    try {
+      final success = await _reactionController.toggleBookmark(
+        widget.postId!,
+        widget.postData,
+      );
+      
+      if (success) {
+        _showBookmarkMessage();
+        
+        // Get updated state from controller
+        final state = _reactionController.getPostReactionState(widget.postId!);
+        if (state != null) {
+          // Notify parent of bookmark change
+          print('PostDetailPageWithZoom: Calling onBookmarkChanged with isBookmarked: ${state.isBookmarked}');
+          widget.onBookmarkChanged?.call(state.isBookmarked);
+        }
+      } else {
+        // Show error message
+        // if (mounted) {
+        //   ScaffoldMessenger.of(context).showSnackBar(
+        //     SnackBar(
+        //       content: Text('Failed to ${_isBookmarked ? "remove" : "save"} post'),
+        //       backgroundColor: Colors.red,
+        //       duration: const Duration(seconds: 2),
+        //     ),
+        //   );
+        // }
+      }
+    } catch (e) {
+      debugPrint('Error toggling bookmark: $e');
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Text('Failed to ${_isBookmarked ? "remove" : "save"} post: ${e.toString()}'),
+      //       backgroundColor: Colors.red,
+      //       duration: const Duration(seconds: 2),
+      //     ),
+      //   );
+      // }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingBookmark = false;
+        });
+      }
+    }
+  }
+
+  void _showBookmarkMessage() {
+    // Get current bookmark state from ReactionController
+    final currentState = widget.postId != null 
+        ? _reactionController.getPostReactionState(widget.postId!)
+        : null;
+    final isCurrentlyBookmarked = currentState?.isBookmarked ?? _isBookmarked;
+    
+    // Show a short feedback message
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isCurrentlyBookmarked
+              ? 'Post saved to your bookmarks'
+              : 'Post removed from your bookmarks',
+          style: const TextStyle(
+            fontFamily: 'FacebookSans',
+          ),
+        ),
+        duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  /// Handle share functionality
+  void _handleShare() async {
+    try {
+      widget.onShare?.call();
+    }catch(e) {}
+
+  }
+
+  /// Map API UserReaction to UI ReactionType
+  ReactionType _mapApiReactionToReactionType(UserReaction apiReaction) {
+    switch (apiReaction) {
+      case UserReaction.love:
+        return ReactionType.love;
+      case UserReaction.haha:
+        return ReactionType.haha;
+      case UserReaction.sad:
+        return ReactionType.sad;
+      case UserReaction.angry:
+        return ReactionType.angry;
+      case UserReaction.surprise:
+        return ReactionType.wow;
+    }
+  }
+
+  /// Map UI ReactionType to API reaction string
+  String _mapReactionTypeToApi(ReactionType reactionType) {
+    switch (reactionType) {
+      case ReactionType.like:
+        return 'LIKE';
+      case ReactionType.love:
+        return 'LOVE';
+      case ReactionType.haha:
+        return 'HAHA';
+      case ReactionType.wow:
+        return 'SURPRISE';
+      case ReactionType.sad:
+        return 'SAD';
+      case ReactionType.angry:
+        return 'ANGRY';
+      case ReactionType.heart:
+        return 'LOVE';
+    }
   }
 
   // Add reaction-related methods
@@ -413,27 +705,76 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
     }
   }
 
-  void _toggleReaction(ReactionType reaction) {
-    setState(() {
-      if (_selectedReaction == reaction) {
-        // Tapping the same reaction removes it
-        _selectedReaction = null;
-        _isLiked = false;
-        _likeCount = _likeCount > 0 ? _likeCount - 1 : 0;
-      } else {
-        // Setting a different reaction
-        if (_selectedReaction == null) {
-          // If no previous reaction, increment count
-          _likeCount += 1;
-        }
-        _selectedReaction = reaction;
-        _isLiked = true;
+  /// Calculate total reaction count from both likes and specific reactions
+  int _calculateTotalReactionCount(int likeCount, PostPollItem? postData) {
+    int totalCount = likeCount;
+    
+    // Add counts from specific reaction types
+    if (postData?.reactionCount != null) {
+      for (final reactionItem in postData!.reactionCount) {
+        totalCount += reactionItem.count;
       }
+    }
+    
+    return totalCount;
+  }
 
-      // Always hide the reaction bar after a selection
-      _showReactionBar = false;
-      print("Reaction selected, setting _showReactionBar to false");
+  void _toggleReaction(ReactionType reaction) async {
+    if (_isProcessingLike || widget.postId == null) return;
+    
+    setState(() {
+      _isProcessingLike = true;
+      _showReactionBar = false; // Hide reaction bar immediately
     });
+
+    try {
+      final success = await _reactionController.toggleReaction(
+        widget.postId!,
+        reaction,
+        widget.postData,
+        widget.mediaType,
+      );
+      
+      // Get updated state from controller
+      final state = _reactionController.getPostReactionState(widget.postId!);
+      if (state != null) {
+        // Play sound if newly liked
+        if (state.isLiked && state.selectedReaction == reaction && !_isLiked) {
+          _playLikeSound();
+        }
+        
+        // Notify parent of reaction change
+        print('PostDetailPageWithZoom: Calling onLikeChanged (reaction) with likes: ${state.likeCount}, isLiked: ${state.isLiked}, reaction: ${state.selectedReaction}');
+        widget.onLikeChanged?.call(state.likeCount, state.isLiked, state.selectedReaction);
+      }
+      
+      // if (!success && mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(
+      //       content: Text('Reaction saved locally - will sync when connection improves'),
+      //       backgroundColor: Colors.orange,
+      //       duration: Duration(seconds: 2),
+      //     ),
+      //   );
+      // }
+    } catch (e) {
+      debugPrint('Error toggling reaction: $e');
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(
+      //       content: Text('Reaction saved locally - will sync when connection improves'),
+      //       backgroundColor: Colors.orange,
+      //       duration: Duration(seconds: 2),
+      //     ),
+      //   );
+      // }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingLike = false;
+        });
+      }
+    }
   }
 
   Widget _buildReactionSelector() {
@@ -525,7 +866,17 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
 
   // Add the action bar method
   Widget _buildActionBar(BuildContext context) {
-    final String postId = widget.postImage.hashCode.toString();
+    // Use actual post ID if available, otherwise fallback to hash
+    final String postId = widget.postId ?? widget.postImage.hashCode.toString();
+    
+    // Get current bookmark state from ReactionController
+    final PostReactionState? reactionState = widget.postId != null 
+        ? _reactionController.getPostReactionState(widget.postId!)
+        : null;
+    final bool currentIsBookmarked = reactionState?.isBookmarked ?? _isBookmarked;
+    
+    // Calculate total reaction count (likes + all other reactions)
+    final int totalReactionCount = _calculateTotalReactionCount(_likeCount, widget.postData);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -550,7 +901,7 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  _likeCount.toString(),
+                  totalReactionCount.toString(),
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
@@ -591,10 +942,13 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
           const SizedBox(width: 16),
 
           // Share button
-          Icon(
-            MdiIcons.shareOutline,
-            size: 26,
-            color: Colors.white,
+          GestureDetector(
+            onTap: _handleShare,
+            child: Icon(
+              MdiIcons.shareOutline,
+              size: 26,
+              color: Colors.white,
+            ),
           ),
 
           const Spacer(),
@@ -603,7 +957,7 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
           GestureDetector(
             onTap: _toggleBookmark,
             child: Icon(
-              _isBookmarked ? MdiIcons.bookmark : MdiIcons.bookmarkOutline,
+              currentIsBookmarked ? MdiIcons.bookmark : MdiIcons.bookmarkOutline,
               color: Colors.white,
               size: 26,
             ),
@@ -653,8 +1007,11 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
 
           // Comment button
           GestureDetector(
-            onTap: () =>
-                _showComments(context, widget.postImage.hashCode.toString()),
+            onTap: () {
+              // Use actual post ID if available, otherwise fallback to hash
+              final String postId = widget.postId ?? widget.postImage.hashCode.toString();
+              _showComments(context, postId);
+            },
             child: Row(
               children: [
                 Container(
@@ -670,13 +1027,16 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
           ),
           const SizedBox(width: 16),
 
-          // Share button - replaced with dot
-          Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFFEEEEEE),
+          // Share button - replaced with dot but still functional
+          GestureDetector(
+            onTap: _handleShare,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFFEEEEEE),
+              ),
             ),
           ),
           const Spacer(),
@@ -700,8 +1060,8 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
 
   @override
   Widget build(BuildContext context) {
-    // Generate a unique post ID based on the post image
-    final String postId = widget.postImage.hashCode.toString();
+    // Use actual post ID if available, otherwise fallback to hash
+    final String postId = widget.postId ?? widget.postImage.hashCode.toString();
     final theme = Theme.of(context);
     final statusBarHeight = MediaQuery.of(context).padding.top;
     final screenSize = MediaQuery.of(context).size;
@@ -711,7 +1071,16 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
     print(
         "Building UI with _showReactionBar: $_showReactionBar, _showDetails: $_showDetails");
 
-    return Scaffold(
+    return Consumer<ReactionController>(
+      builder: (context, reactionController, child) {
+        // Get reaction state from controller if available, otherwise use local state
+        final PostReactionState? reactionState = widget.postId != null 
+            ? reactionController.getPostReactionState(widget.postId!)
+            : null;
+        
+        final bool currentIsBookmarked = reactionState?.isBookmarked ?? _isBookmarked;
+
+        return Scaffold(
         backgroundColor: Colors.black,
         body: GestureDetector(
           // Add this GestureDetector to dismiss reaction bar when tapping outside
@@ -962,6 +1331,8 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
             ),
           ),
         ));
+      },
+    );
   }
 
   Widget _buildMediaContent() {
@@ -996,38 +1367,34 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
                   );
                 },
                 child: Center(
-                  child: Image.asset(
-                    widget.postImage,
+                  child: NetworkImageWidget(
+                    imageUrl: widget.postImage,
                     fit: BoxFit
                         .contain, // Use contain for proper zooming experience
-                    alignment: Alignment.center,
-                    gaplessPlayback: true, // Prevent image flicker
-                    frameBuilder:
-                        (context, child, frame, wasSynchronouslyLoaded) {
-                      // This creates a smoother transition by matching the initial layout
-                      if (frame == null) {
-                        return Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          color: Colors.black,
-                        );
-                      }
-                      return child;
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: double.infinity,
-                        height: double.infinity,
-                        color: Colors.grey.shade200,
-                        child: const Center(
-                          child: Icon(
-                            Icons.image_not_supported,
-                            color: Colors.grey,
-                            size: 64,
-                          ),
+                    width: double.infinity,
+                    height: double.infinity,
+                    placeholder: Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      color: Colors.black,
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
                         ),
-                      );
-                    },
+                      ),
+                    ),
+                    errorWidget: Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      color: Colors.grey.shade200,
+                      child: const Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey,
+                          size: 64,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1092,7 +1459,7 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    "Poll content is displayed in the feed view",
+                    "Poll content is displayed in the posts view",
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 18,
@@ -1108,7 +1475,7 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 24, vertical: 12),
                     ),
-                    child: const Text('Return to feed'),
+                    child: const Text('Return to posts'),
                   ),
                 ],
               ),

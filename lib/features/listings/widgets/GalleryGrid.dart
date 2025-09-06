@@ -75,7 +75,7 @@ class GalleryGrid extends StatelessWidget {
         tag: 'gallery_$index',
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Image.asset(
+          child: Image.network(
             imagePath,
             fit: BoxFit.cover,
           ),
@@ -402,7 +402,7 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                           // Check if we need to snap back to bounds
                           _ensureImageInBounds(index);
                         },
-                        child: Image.asset(
+                        child: Image.network(
                           widget.images[index],
                           fit: BoxFit.contain,
                           width: MediaQuery.of(context).size.width,
@@ -617,6 +617,7 @@ class _FullScreenImageViewState extends State<_FullScreenImageView>
                                             clinicName: 'Jiva Ayurvedic Clinic',
                                             category: 'Ayurvedic',
                                             subCategory: 'Clinic',
+                                            businessId: '',
                                           )),
                                 );
                               },

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:myapp/features/common/widgets/BannerCorousal.dart';
 import 'package:myapp/features/spiritual/presentation/screens/article_detail_screen.dart';
 import 'package:myapp/features/spiritual/presentation/widgets/ArticleCard.dart';
 import 'package:myapp/features/utsav/widgets/AppHeader.dart';
+
+import '../controller/article_controller.dart';
 
 class ArticlesScreen extends StatefulWidget {
   const ArticlesScreen({super.key});
@@ -12,45 +15,34 @@ class ArticlesScreen extends StatefulWidget {
 }
 
 class _ArticlesScreenState extends State<ArticlesScreen> {
+  final ArticleController articleController = Get.put(ArticleController());
   final List<Map<String, String>> _articles = [
     {
       'title':
-          'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
+      'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
       'image': 'assets/images/spiritual/article_image.png',
       'time': '3 day ago',
     },
     {
       'title':
-          'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
+      'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
       'image': 'assets/images/spiritual/article_image.png',
       'time': '3 day ago',
     },
     {
       'title':
-          'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
+      'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
       'image': 'assets/images/spiritual/article_image.png',
       'time': '3 day ago',
     },
     {
       'title':
-          'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
+      'Understanding Energy, Black magic and Protection : The role of Spiritual ...',
       'image': 'assets/images/spiritual/article_image.png',
       'time': '3 day ago',
     },
   ];
 
-  void _navigateToArticleDetail(Map<String, String> article) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ArticleDetailScreen(
-          title: article['title'] ?? '',
-          image: article['image'] ?? '',
-          time: article['time'] ?? '',
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +76,7 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
                     // Latest Posts Section
                     const Padding(
                       padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Text(
                         'Latest Posts',
                         style: TextStyle(
@@ -101,14 +93,30 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
                       child: ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _articles.length,
+                        itemCount: articleController.articles.length,
                         itemBuilder: (context, index) {
-                          final article = _articles[index];
-                          return ArticleCard(
-                            title: article['title'] ?? '',
-                            imagePath: article['image'] ?? '',
-                            timeAgo: article['time'] ?? '',
-                            onTap: () => _navigateToArticleDetail(article),
+                          final articles = articleController.articles[index];
+                          return InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ArticleDetailScreen(
+                                    title: articles['title']?.toString() ?? '',
+                                    imagePath:articles['mobile_image']?.toString() ?? '',
+                                    createdAt: articles['createdAt']?.toString() ?? '',
+                                    description: articles['description'].toString() ?? '',
+                                  ),
+                                ),
+                              );
+
+
+                            },
+                            child: ArticleCard(
+                              title: articles['title']?.toString() ?? '',
+                              imagePath:articles['mobile_image']?.toString() ?? '',
+                              createdAt: articles['createdAt']?.toString() ?? '',
+                            ),
                           );
                         },
                       ),

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:myapp/core/theme/AppTextStyles.dart';
 
 import '../models/event_model.dart';
 
-class EventDetailCard extends StatelessWidget {
+class EventDetailCard extends StatefulWidget {
   final Event event;
   final VoidCallback? onBookPressed;
 
@@ -15,10 +16,17 @@ class EventDetailCard extends StatelessWidget {
   });
 
   @override
+  State<EventDetailCard> createState() => _EventDetailCardState();
+}
+
+class _EventDetailCardState extends State<EventDetailCard> {
+  @override
   Widget build(BuildContext context) {
+
     final isTablet = MediaQuery.of(context).size.width > 600;
     return LayoutBuilder(
       builder: (context, constraints) {
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -27,8 +35,8 @@ class EventDetailCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    event.imagePath,
+                  child: Image.network(
+                    widget.event.imagePath,
                     height: isTablet ? 360 : 184,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -66,7 +74,7 @@ class EventDetailCard extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          event.category,
+                          widget.event.category,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w500,
@@ -85,7 +93,7 @@ class EventDetailCard extends StatelessWidget {
 
             // Event title
             Text(
-              event.title,
+              widget.event.title,
               style: AppTextStyles.medium18.copyWith(
                 color: Colors.black,
               ),
@@ -113,7 +121,7 @@ class EventDetailCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${DateFormat('EEE, dd MMM yyyy').format(event.date)} | ${event.time}',
+                        '${DateFormat('EEE, dd MMM yyyy').format(widget.event.date)} | ${widget.event.time}',
                         style: AppTextStyles.regular14.copyWith(
                           color: Colors.black,
                         ),
@@ -146,7 +154,7 @@ class EventDetailCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${event.venue} | ${event.location}',
+                        '${widget.event.venue} | ${widget.event.location}',
                         style: AppTextStyles.regular14.copyWith(
                           color: Colors.black,
                         ),
@@ -170,7 +178,7 @@ class EventDetailCard extends StatelessWidget {
                     maxWidth: constraints.maxWidth * 0.4,
                   ),
                   child: Text(
-                    '₹${event.price.toInt()}',
+                    '₹${widget.event.price.toInt()}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -189,7 +197,7 @@ class EventDetailCard extends StatelessWidget {
                     maxWidth: constraints.maxWidth * 0.55,
                   ),
                   child: TextButton(
-                    onPressed: onBookPressed,
+                    onPressed: widget.onBookPressed,
                     style: TextButton.styleFrom(
                       backgroundColor: const Color(0xFFE54B4D),
                       foregroundColor: Colors.white,
