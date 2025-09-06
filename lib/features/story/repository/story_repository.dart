@@ -17,7 +17,12 @@ class StoryRepository {
   /// Get bearer token from SharedPreferences
   Future<String?> _getBearerToken() async {
     try {
-
+      final token = AuthHelper.getAuthToken;
+      // await SharedPreferences.getInstance();
+      // return prefs.getString('auth_token');
+      // Using hardcoded token for now, same as PostPollRepository
+      // const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6Ijk2NTEzNDI4ODciLCJfaWQiOiI2ODhkZDM5MGM3NDAxMGQ1MzUwYTNhZDUiLCJpYXQiOjE3NTQxMjUyMDAsImV4cCI6MTc1NjcxNzIwMH0.adE1S2WxS_kqaWExyxuSwjnosmLqx7J68NvGUIvjGZU";
+      return "Bearer $token";
     } catch (e) {
       return null;
     }

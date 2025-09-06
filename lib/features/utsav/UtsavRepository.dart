@@ -19,7 +19,8 @@ class UtsavRepository {
 
   Future<String?> _getBearerToken() async {
     try {
-
+      final token = AuthHelper.getAuthToken;
+      return "Bearer $token";
     } catch (e) {
       return null;
     }

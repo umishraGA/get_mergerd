@@ -24,7 +24,8 @@ class LocationModel {
 
 class LocationController extends GetxController {
   var isLoading = false.obs;
-  // Listps for each type
+
+  // Lists for each type
   var countries = <LocationModel>[].obs;
   var states = <LocationModel>[].obs;
   var cities = <LocationModel>[].obs;
@@ -106,19 +107,6 @@ class LocationController extends GetxController {
     isLoading.value = true;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString("token");
-
-      if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Token not found. Please login."),
-            backgroundColor: Colors.red,
-          ),
-        );
-        isLoading.value = false;
-        return;
-      }
 
       final url = Uri.parse('${Endpoints.baseUrl}$endpoint');
       final response = await http.get(

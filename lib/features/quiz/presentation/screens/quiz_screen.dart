@@ -4,6 +4,7 @@ import 'package:myapp/features/quiz/presentation/routes/quiz_routes.dart';
 import 'package:myapp/features/quiz/presentation/screens/enhanced_quiz_screen.dart';
 import 'package:myapp/features/quiz/presentation/widgets/bottom_bar_for_quiz.dart';
 
+import '../../../../common/enum/enum.dart';
 import '../widgets/TopAppBarQuiz.dart';
 import '../widgets/category_item.dart';
 import '../widgets/quiz_zone_item.dart';
@@ -62,20 +63,20 @@ class QuizScreen extends StatelessWidget {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 0),
-                children: const [
-                  CategoryItem(
-                    icon: 'assets/images/quiz/quiz_zone.png',
-                    name: 'Healthcare',
-                  ),
-                  CategoryItem(
-                    icon: 'assets/images/quiz/quiz_zone.png',
-                    name: 'Electronics',
-                  ),
-                  CategoryItem(
-                    icon: 'assets/images/quiz/quiz_zone.png',
-                    name: 'Property',
-                  ),
-                ],
+                // children: const [
+                //   CategoryItem(
+                //     icon: 'assets/images/quiz/quiz_zone.png',
+                //     name: 'Healthcare',
+                //   ),
+                //   CategoryItem(
+                //     icon: 'assets/images/quiz/quiz_zone.png',
+                //     name: 'Electronics',
+                //   ),
+                //   CategoryItem(
+                //     icon: 'assets/images/quiz/quiz_zone.png',
+                //     name: 'Property',
+                //   ),
+                // ],
               ),
             ),
 

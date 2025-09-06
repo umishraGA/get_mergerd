@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:myapp/utils/dio/auth_helper.dart';
+import 'package:myapp/main_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../common/constant/endpoints.dart';
@@ -18,11 +18,9 @@ class CreateAccountController extends GetxController {
   }) async {
     isLoading.value = true;
 
-    final url = Uri.parse('https://api.gamsgroup.in/user/basic/update-user');
-print(url);
+    final url = Uri.parse(Endpoints.signupStep);
+
     try {
-      // var token = await AuthHelper.getAuthToken;
-      print("token step 1 ${AuthHelper.getAuthToken}");
       final response = await http.put(
         url,
         headers: {
@@ -108,28 +106,31 @@ print(url);
   }) async {
     isLoading.value = true;
 
-
-    final url = Uri.parse('https://api.gamsgroup.in/user/basic/update-user');
-
+    final url = Uri.parse(Endpoints.signupStep);
+    print("url ============= $url");
     try {
+
+      var bodyRequest = {
+        "step": 2,
+        "firstName": firstName,
+        "dathOfBirth": dateOfBirth,
+        "gender": gender,
+        "country": country,
+        "state": state,
+        "city": city,
+        "area": area,
+        "occupation": occupation,
+        "maritalStatus": maritalStatus,
+      };
+      print("body request ==============>>>>>>>>>>>>>>> $bodyRequest");
+
       final response = await http.put(
         url,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
         },
-        body: jsonEncode({
-          "step": 2,
-          "firstName": firstName,
-          "dathOfBirth": dateOfBirth,
-          "gender": gender,
-          "country": country,
-          "state": state,
-          "city": city,
-          "area": area,
-          "occupation": occupation,
-          "maritalStatus": maritalStatus,
-        }),
+        body: jsonEncode(bodyRequest),
       );
 
       debugPrint("Response Status: ${response.statusCode}");
@@ -140,6 +141,8 @@ print(url);
           final responseData = jsonDecode(response.body);
 
           if (responseData['success'] == true) {
+            print("isComplete value ====  ${responseData["data"]["isCompleted"]}");
+            AuthHelper.saveProfileCompleted(responseData["data"]["isCompleted"] as bool);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(responseData['message']?.toString() ??

@@ -103,7 +103,7 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
     }
   }
 
-  // Save the current position to persistent storage
+  // Save the current position to persistent image
   Future<void> _savePosition() async {
     if (!widget.rememberPosition || !_isInitialized) return;
 

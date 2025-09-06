@@ -5,7 +5,7 @@ class AppThemes {
     Color(0xFF6750A4), // Purple
     Color(0xFF006C51), // Green
     Color(0xFF0061A4), // Blue
-    Color(0xFFEF3340), // Red
+    Color(0xFFEF3340), // Red - 
     Color(0xFF006874), // Teal
     Color(0xFFFFC0CB), // Pink
   ];
@@ -47,23 +47,24 @@ class AppThemes {
       ),
       fontFamily: 'FacebookSans',
     ),
-    // Red Theme - Updated
+    // Red Theme - Updated to match the social media app
     ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme(
         brightness: Brightness.light,
-        primary: const Color(0xFFEF3340),
+        primary: const Color(0xFFEF3340), // Main red color from the app
         onPrimary: Colors.white,
-        secondary: const Color(0xFF4A89DC),
+        secondary: const Color(0xFF4A89DC), // Blue color from the app icons
         onSecondary: Colors.white,
         error: const Color(0xFFBA1A1A),
         onError: Colors.white,
         surface: Colors.white,
         onSurface: Colors.black,
-        surfaceContainerHighest: const Color(0xFFF5F5F5),
+        surfaceContainerHighest:
+            const Color(0xFFF5F5F5), // Light gray for cards
         onSurfaceVariant: Colors.black87,
-        outline: Colors.grey,
-        shadow: Colors.black,
+        outline: Colors.grey.shade300,
+        shadow: Colors.black.withOpacity(0.1),
         inverseSurface: Colors.black,
         onInverseSurface: Colors.white,
         inversePrimary: const Color(0xFFFFB4AB),
@@ -88,10 +89,10 @@ class AppThemes {
         backgroundColor: Color(0xFFEF3340),
         foregroundColor: Colors.white,
       ),
-      cardTheme: CardThemeData(   // ✅ FIXED
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -101,9 +102,9 @@ class AppThemes {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-          borderSide: BorderSide(color: Color(0xFFEF3340)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFEF3340)),
         ),
       ),
       fontFamily: 'FacebookSans',
@@ -156,14 +157,14 @@ class AppThemes {
       ),
       fontFamily: 'FacebookSans',
     ),
-    // Red Theme - Updated
+    // Red Theme - Updated to match the social media app
     ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme(
         brightness: Brightness.dark,
-        primary: const Color(0xFFEF3340),
+        primary: const Color(0xFFEF3340), // Main red color from the app
         onPrimary: Colors.white,
-        secondary: const Color(0xFF4A89DC),
+        secondary: const Color(0xFF4A89DC), // Blue color from the app icons
         onSecondary: Colors.white,
         error: const Color(0xFFFFB4AB),
         onError: Colors.black,
@@ -171,8 +172,8 @@ class AppThemes {
         onSurface: Colors.white,
         surfaceContainerHighest: const Color(0xFF3A3A3A),
         onSurfaceVariant: Colors.white70,
-        outline: Colors.grey,
-        shadow: Colors.black,
+        outline: Colors.grey.shade700,
+        shadow: Colors.black.withOpacity(0.3),
         inverseSurface: Colors.white,
         onInverseSurface: Colors.black,
         inversePrimary: const Color(0xFFEF3340),
@@ -197,10 +198,10 @@ class AppThemes {
         backgroundColor: Color(0xFFEF3340),
         foregroundColor: Colors.white,
       ),
-      cardTheme: CardThemeData(   // ✅ FIXED
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -210,9 +211,9 @@ class AppThemes {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-          borderSide: BorderSide(color: Color(0xFFEF3340)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFEF3340)),
         ),
       ),
       fontFamily: 'FacebookSans',

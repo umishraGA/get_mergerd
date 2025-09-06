@@ -8,7 +8,7 @@ class CommentsService extends ChangeNotifier {
   factory CommentsService() => _instance;
   CommentsService._internal();
 
-  // In-memory storage for comments (in a real app, this would be a database)
+  // In-memory image for comments (in a real app, this would be a database)
   final Map<String, List<CommentModel>> _commentsMap = {};
 
   // Get comments for a post (only top-level comments)

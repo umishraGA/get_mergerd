@@ -505,7 +505,7 @@ class _PostCardWidgetState extends State<PostCardWidget>
         }
       }
       
-      // Fallback: If no API selection found, check local storage
+      // Fallback: If no API selection found, check local image
       if (_selectedPollOption == null && widget.postId != null) {
         if (_postController.hasUserVoted(widget.postId!)) {
           final votedOptionId = _postController.getUserVotedOption(widget.postId!);

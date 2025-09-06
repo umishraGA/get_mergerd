@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:myapp/common/enum/enum.dart';
 
+import '../controller/quiz_question_controller.dart';
+import '../model/quiz_question_model.dart';
 import '../widgets/quiz_dialog.dart';
 import './quiz_result_screen.dart';
-
-enum QuizType { multipleChoice, wordGuess }
-
-enum AnswerState { unanswered, correct, incorrect, timeUp }
+import 'package:get/get.dart';
 
 class EnhancedQuizScreen extends StatefulWidget {
   final String categoryName;
@@ -27,8 +27,8 @@ class EnhancedQuizScreen extends StatefulWidget {
   State<EnhancedQuizScreen> createState() => _EnhancedQuizScreenState();
 }
 
-class _EnhancedQuizScreenState extends State<EnhancedQuizScreen>
-    with SingleTickerProviderStateMixin {
+class _EnhancedQuizScreenState extends State<EnhancedQuizScreen> with SingleTickerProviderStateMixin {
+  final _controller = Get.put(QuizQuestionController());
   int _currentQuestionIndex = 0;
   int _timeLeft = 20;
   int _score = 0;
@@ -131,7 +131,23 @@ class _EnhancedQuizScreenState extends State<EnhancedQuizScreen>
         });
       }
     });
+
+    // Fetch quiz questions dynamically
+    _controller.fetchQuizQuestionApi("68b68c8316ee8eefbf872c7d", "zone");
+
   }
+
+// Get the current question
+  QuizQuestionData get currentQuestion =>
+      _controller.quizQuestionDataList[_currentQuestionIndex];
+
+  List<String> get currentOptions => [
+    currentQuestion.optionA ?? "",
+    currentQuestion.optionB ?? "",
+    currentQuestion.optionC ?? "",
+    currentQuestion.optionD ?? "",
+  ];
+
 
   Future<void> _initAudio() async {
     try {
@@ -338,7 +354,7 @@ class _EnhancedQuizScreenState extends State<EnhancedQuizScreen>
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => QuizResultScreen(
-          categoryName: widget.categoryName,
+          type: widget.categoryName,
           level: widget.level,
           correctAnswers: _score,
           totalQuestions: widget.quizType == QuizType.multipleChoice
@@ -801,7 +817,9 @@ class _EnhancedQuizScreenState extends State<EnhancedQuizScreen>
         body: SafeArea(
           child: Column(
             children: [
+              /// header
               _buildQuizHeader(),
+
               Expanded(
                 child: SingleChildScrollView(
                   child: widget.quizType == QuizType.multipleChoice
@@ -809,6 +827,58 @@ class _EnhancedQuizScreenState extends State<EnhancedQuizScreen>
                       : _buildWordGuessContent(),
                 ),
               ),
+
+              Obx(() {
+                switch (_controller.status.value) {
+                  case ApiStatus.initial:
+                  case ApiStatus.loading:
+                  // Show shimmer
+                    return Center(child: CircularProgressIndicator());
+
+                  case ApiStatus.success:
+                  // Show actual categories
+                    if (_controller.quizQuestionDataList.isEmpty) {
+                      return const Center(child: Text("No questions available"));
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          currentQuestion.question ?? "",
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 20),
+                        ...List.generate(
+                          currentOptions.length,
+                              (index) {
+                            final optionText = currentOptions[index] ?? "";
+                            final isSelected = _selectedAnswerIndex == index;
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isSelected
+                                      ? (_answerState == AnswerState.correct
+                                      ? Colors.green
+                                      : Colors.red)
+                                      : Colors.blue,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                ),
+                                onPressed: () => _checkAnswer(index),
+                                child: Text(optionText),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    );
+
+                  case ApiStatus.error:
+                  // Show error UI
+                    return const Center(child: Text('Failed to load categories'));
+                }
+              }),
               _buildLifelines(),
             ],
           ),
@@ -817,6 +887,7 @@ class _EnhancedQuizScreenState extends State<EnhancedQuizScreen>
     );
   }
 
+  /// header top
   Widget _buildQuizHeader() {
     return Column(
       children: [

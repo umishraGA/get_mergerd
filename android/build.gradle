@@ -1,81 +1,15 @@
-buildscript {
-    ext.kotlin_version = '2.1.0'
-    repositories {
-        google()
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.6.0'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-
-    ext {
-        defaultNamespaceForUndefinedPlugins = true
-    }
-}
-
-// Ensure Java 17 toolchain for all projects
-allprojects {
-    tasks.withType(JavaCompile) {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    
-    // Ensure Kotlin uses JVM target 17 for all tasks
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            jvmTarget = '17'
-        }
-    }
-    
-    // Force JVM target for Android Kotlin compilation tasks
-    plugins.withId('com.android.library') {
-        android {
-            compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
-            }
-            
-            // This will be applied to all Kotlin tasks in Android libraries
-            tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                kotlinOptions.jvmTarget = '17'
-            }
-        }
-    }
-    
-    plugins.withId('org.jetbrains.kotlin.android') {
-        tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-            kotlinOptions.jvmTarget = '17'
-        }
-    }
-}
-
 allprojects {
     repositories {
         google()
         mavenCentral()
     }
-
+    
     afterEvaluate { project ->
         if (project.hasProperty('android')) {
             android {
                 if (!project.android.hasProperty('namespace')) {
                     namespace = "com.example.${project.name}"
                 }
-                
-                // Ensure Java 17 compatibility for all subprojects
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_17
-                    targetCompatibility JavaVersion.VERSION_17
-                }
-            }
-        }
-        
-        // Ensure Kotlin JVM target 17 for all subprojects
-        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
-            kotlinOptions {
-                jvmTarget = '17'
             }
         }
     }
@@ -91,4 +25,21 @@ subprojects {
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
+}
+
+buildscript {
+    ext.kotlin_version = '2.1.0'
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+    
+    ext {
+        defaultNamespaceForUndefinedPlugins = true
+    }
 }

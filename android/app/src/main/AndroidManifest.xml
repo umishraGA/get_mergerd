@@ -2,6 +2,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SEND_SMS"/>
+    <uses-permission android:name="android.permission.READ_SMS"/>
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
 
     <application
         android:label="Happening Bazaar"
@@ -43,6 +48,7 @@
             </intent-filter>
         </activity>
 
+
         <!-- Keep existing meta-data -->
         <meta-data
             android:name="flutterEmbedding"
@@ -52,6 +58,7 @@
         <meta-data
             android:name="com.google.android.gms.wallet.api.enabled"
             android:value="true" />
+
     </application>
 
     <!-- Keep your existing queries section -->
