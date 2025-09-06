@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../utils/dio/auth_helper.dart';
 import '../repository/post_poll_repository.dart';
 import '../../../utils/dio/api_service.dart';
 
@@ -225,7 +224,7 @@ class PostController extends GetxController {
         // Track that user has voted on this poll (update or set new vote)
         votedPolls[postId] = optionId;
         
-        // Save voted polls to local storage
+        // Save voted polls to local image
         await _saveVotedPolls();
         
         return true;
@@ -442,7 +441,7 @@ class PostController extends GetxController {
       final response = await http.get(
         Uri.parse('https://gamsgroup.in/api/user/post/get-post-polls'),
         headers: {
-          'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
+          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
       );
@@ -460,7 +459,7 @@ class PostController extends GetxController {
   }
 
 
-  /// Load followed users from local storage
+  /// Load followed users from local image
   Future<void> _loadFollowedUsers() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -479,7 +478,7 @@ class PostController extends GetxController {
     }
   }
 
-  /// Save followed users to local storage
+  /// Save followed users to local image
   Future<void> _saveFollowedUsers() async {
     try {
       final prefs = await SharedPreferences.getInstance();

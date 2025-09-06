@@ -10,7 +10,7 @@ class TopAppBarQuiz extends StatelessWidget {
     this.useDarkTheme = false,
   });
 
-  final VoidCallback? onBack;
+  final GestureTapCallback? onBack;
   final String coins;
   final String? title;
   final bool useDarkTheme;
@@ -43,15 +43,20 @@ class TopAppBarQuiz extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                GestureDetector(
-                  onTap: onBack ?? () => Navigator.of(context).pop(),
-                  child: Icon(
+                IconButton(
+                  onPressed: () {
+                    if (onBack != null) {
+                      onBack!(); // call the passed function
+                    } else {
+                      Navigator.of(context).pop(); // default action
+                    }
+                  },
+                  icon: Icon(
                     Icons.arrow_back_ios,
                     color: textColor,
                     size: 24, // Slightly smaller
                   ),
-                ),
-                const SizedBox(width: 8), // Reduced spacing
+                ), // Reduced spacing
 
                 // Title with overflow handling
                 Expanded(

@@ -15,7 +15,7 @@ class UtsavOfferBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Debug print to verify banner path
-    print('Building banner with image path: $imagePath');
+    // print('Building banner with image path: $imagePath');
     final isTablet = MediaQuery.of(context).size.width > 600;
 
     // Get screen size for placeholder dimensions

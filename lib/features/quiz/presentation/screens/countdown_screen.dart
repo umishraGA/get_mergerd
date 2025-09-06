@@ -5,13 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 
 class CountdownScreen extends StatefulWidget {
-  final String categoryName;
+  final String type;
   final int level;
   final VoidCallback onCountdownComplete;
 
   const CountdownScreen({
     super.key,
-    required this.categoryName,
+    required this.type,
     required this.level,
     required this.onCountdownComplete,
   });
@@ -42,7 +42,7 @@ class _CountdownScreenState extends State<CountdownScreen>
     // Initialize animation with longer duration for more visibility
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1500),
     );
 
     _animation = Tween<double>(begin: 1.0, end: 3.0).animate(
@@ -113,7 +113,6 @@ class _CountdownScreenState extends State<CountdownScreen>
       }
     }));
 
-    // Third beep at 5 seconds (1+4) with number "1"
     _timers.add(Timer(const Duration(seconds: 4), () {
       if (mounted) {
         setState(() {
@@ -124,7 +123,7 @@ class _CountdownScreenState extends State<CountdownScreen>
     }));
 
     // Complete the countdown at 7 seconds (1+6)
-    _timers.add(Timer(const Duration(seconds: 6), () {
+    _timers.add(Timer(const Duration(seconds: 5), () {
       if (mounted) {
         widget.onCountdownComplete();
       }

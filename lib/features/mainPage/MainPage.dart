@@ -2,15 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:myapp/common/navigation/custom_bottom_nav_bar.dart';
 import 'package:myapp/features/events/screens/events_screen.dart';
-import 'package:myapp/features/listings/views/ListingsPage.dart';
-import 'package:myapp/features/mainPage/widgets/LocationSearchWidget.dart';
 import 'package:myapp/features/posts/screens/SocialFeedWidget.dart';
-import 'package:myapp/features/quiz/presentation/screens/quiz_screen.dart';
+import 'package:myapp/features/quiz/presentation/screens/quiz_home.dart';
 import 'package:myapp/features/spiritual/presentation/screens/spiritual_screen.dart';
 import 'package:myapp/features/utsav/views/UtsavPage.dart';
-
 import '../listings/views/categorypage.dart';
-import '../profile/controller/profile_controller.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -89,7 +85,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       // If Quiz is selected, navigate to QuizScreen
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const QuizScreen()),
+        MaterialPageRoute(builder: (context) => const QuizHome()),
       );
     } else {
       setState(() {
@@ -147,9 +143,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
             ),
         const SpiritualScreen(),       // TicketPage(eventId: '68944c4e02145fd86b8da317',),
         const ListingsPageTest(),
-         const UtsavPage(),
+        const UtsavPage(),
         const EventsScreen(),
-        const QuizScreen(),
+        const QuizHome(),
     ];
 
     return Scaffold(

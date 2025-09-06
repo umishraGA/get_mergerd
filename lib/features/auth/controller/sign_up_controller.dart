@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:myapp/main.dart';
+import 'package:myapp/main_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../service/AuthService.dart';
 
 class SignupOtpController extends GetxController {
   var isLoading = false.obs;
   final AuthService _authService = AuthService();
-  final AuthHelper _authHelper =  AuthHelper();
 
   /// ✅ Send OTP
   Future<bool> sendSignupOtp(BuildContext context, String phone) async {
@@ -66,8 +65,10 @@ class SignupOtpController extends GetxController {
       final responseData = response.data;
 
       if (response.statusCode == 200 && responseData["success"] == true) {
-        AuthHelper.saveAuthToken(responseData["data"]["token"] as String? ?? "");
-        AuthHelper.saveRefreshToken(responseData["data"]["refreshToken"] as String? ?? "");
+        AuthHelper.saveAuthToken(responseData["data"]["token"].toString());
+        AuthHelper.saveRefreshToken(responseData["data"]["refreshToken"].toString());
+        AuthHelper.saveNumber(phone.toString());
+        AuthHelper.saveProfileCompleted(responseData["data"]["isComplete"] as bool? ?? false);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -76,7 +77,6 @@ class SignupOtpController extends GetxController {
             ),
           );
         }
-
         return true; // ✅ Verification successful
       } else {
         if (context.mounted) {

@@ -1,9 +1,6 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:myapp/features/mainPage/settings/preferences_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsComponents {
   static const String currencyKey = 'currency_preference';

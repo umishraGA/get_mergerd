@@ -9,6 +9,7 @@ class Endpoints {
   static const int sendTimeout = 30000;
 
   static const String signupOtp = '$baseUrl/user/auth/signup-otp';
+  static const String signupStep = '$baseUrl/user/basic/update-user';
   static const String verifySignupOtp = '$baseUrl/user/auth/verify-signup';
   static const String loginOtp = '$baseUrl/user/auth/login-otp';
   static const String verifyLoginOtp = '$baseUrl/user/auth/verify-login';
@@ -58,5 +59,6 @@ class Endpoints {
 
   static const String getAddress = '$baseUrl/user/basic/get-address';
   static const String saveEnquiry = '$baseUrl/user/basic/save-enquiry';
+  static const String addIntrest = '$baseUrl/user/basic/add-interest';
 
 }
