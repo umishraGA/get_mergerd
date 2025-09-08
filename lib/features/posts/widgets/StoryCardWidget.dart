@@ -9,12 +9,24 @@ class StoryCardWidget extends StatelessWidget {
   final StoryItem story;
   final int storyIndex;
   final List<StoryItem>? allStories; // Add optional parameter for all stories
+<<<<<<< HEAD
+=======
+  final StoryController? storyController; // Add story controller for pause/resume functionality
+  final VoidCallback? onStoryOpened; // Callback when story is opened
+  final VoidCallback? onStoryClosed; // Callback when story is closed
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 
   const StoryCardWidget({
     super.key,
     required this.story,
     required this.storyIndex,
     this.allStories,
+<<<<<<< HEAD
+=======
+    this.storyController,
+    this.onStoryOpened,
+    this.onStoryClosed,
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
   });
 
   /// Check if the given URL is a network URL
@@ -24,17 +36,33 @@ class StoryCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     // Get the first media URL if available
     final mediaUrl = (story.media?.isNotEmpty ?? false) ? (story.media!.first.url ?? '') : '';
     final username = (story.chooseTypeId?.additional_info?.isNotEmpty == true) 
         ? story.chooseTypeId!.additional_info!.first.title ?? 'Unknown'
         : story.chooseTypeId?.companyInfo?.companyName ?? 'Unknown';
+=======
+    // Get the first media URL, using thumbnail for videos if available
+    String mediaUrl = '';
+    if (story.media?.isNotEmpty ?? false) {
+      final firstMedia = story.media!.first;
+      if (firstMedia.type == 'video' && firstMedia.thumbnail?.isNotEmpty == true) {
+        mediaUrl = firstMedia.thumbnail!; // Use thumbnail for videos
+      } else {
+        mediaUrl = firstMedia.url ?? ''; // Use original URL for images
+      }
+    }
+    
+    final username = story.displayName;
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
     
     return Hero(
       tag: 'story_${username}_$storyIndex',
       child: Material(
         color: Colors.transparent,
         child: InkWell(
+<<<<<<< HEAD
           onTap: () async {
             // Create individual stories from the current story's media items
             final List<StoryItem> individualStories = [];
@@ -77,6 +105,24 @@ class StoryCardWidget extends StatelessWidget {
                   usernames: usernames,
                   initialUserIndex: userIndex >= 0 ? userIndex : 0,
                   storyController: storyController,
+=======
+          onTap: () {
+            // Notify immediately that a story is being opened (pauses other media)
+            onStoryOpened?.call();
+            storyController?.pauseAllStories();
+            
+            // Navigate immediately to provide instant feedback
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => _StoryViewWrapper(
+                  story: story,
+                  username: username,
+                  onStoryClosed: () {
+                    storyController?.resumeAllStories();
+                    onStoryClosed?.call();
+                  },
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                 ),
               ),
             );
@@ -201,3 +247,99 @@ class StoryCardWidget extends StatelessWidget {
     );
   }
 }
+<<<<<<< HEAD
+=======
+
+class _StoryViewWrapper extends StatelessWidget {
+  final StoryItem story;
+  final String username;
+  final VoidCallback onStoryClosed;
+
+  const _StoryViewWrapper({
+    required this.story,
+    required this.username,
+    required this.onStoryClosed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Pre-process stories immediately without async operations
+    final List<StoryItem> individualStories = [];
+    
+    if ((story.media?.isNotEmpty ?? false)) {
+      for (var mediaItem in story.media!) {
+        final individualStory = story.copyWith(
+          media: [mediaItem],
+        );
+        individualStories.add(individualStory);
+      }
+    }
+
+    final Map<String, List<StoryItem>> storiesByUser = {
+      username: individualStories,
+    };
+
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          onStoryClosed();
+        }
+      },
+      child: _FastStoryView(
+        storiesByUser: storiesByUser,
+        username: username,
+      ),
+    );
+  }
+}
+
+class _FastStoryView extends StatefulWidget {
+  final Map<String, List<StoryItem>> storiesByUser;
+  final String username;
+
+  const _FastStoryView({
+    required this.storiesByUser,
+    required this.username,
+  });
+
+  @override
+  State<_FastStoryView> createState() => _FastStoryViewState();
+}
+
+class _FastStoryViewState extends State<_FastStoryView> {
+  StoryController? storyController;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize controller in background without blocking UI
+    _initializeControllerInBackground();
+  }
+
+  void _initializeControllerInBackground() async {
+    storyController = StoryController();
+    try {
+      await storyController!.initialize();
+    } catch (e) {
+      debugPrint('Failed to initialize story controller: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    storyController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Show story view immediately without waiting for controller
+    return StoryViewSequential(
+      allStoriesByUser: widget.storiesByUser,
+      usernames: [widget.username],
+      initialUserIndex: 0,
+      storyController: storyController, // null initially, gets set when ready
+    );
+  }
+}
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b

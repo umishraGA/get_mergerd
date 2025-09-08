@@ -24,7 +24,7 @@ class SocialFeedController extends ChangeNotifier {
   AnimationController? _transitionController;
   Animation<double>? _fadeAnimation;
 
-  // API data state
+  // API data state with caching
   List<PostPollItem> _posts = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -32,7 +32,15 @@ class SocialFeedController extends ChangeNotifier {
   // Tab selection state
   bool _isFollowingTab = false;
   
-  // Pagination state
+  // Caching for both tabs
+  List<PostPollItem> _forYouPosts = [];
+  List<PostPollItem> _followingPosts = [];
+  int _forYouPage = 1;
+  int _followingPage = 1;
+  bool _forYouHasMoreData = true;
+  bool _followingHasMoreData = true;
+  
+  // Current pagination state (mirrors the active tab)
   int _currentPage = 1;
   int _pageSize = 10;
   bool _hasMoreData = true;
@@ -111,13 +119,38 @@ class SocialFeedController extends ChangeNotifier {
     ));
   }
 
-  /// Fetch posts and polls from the API
+  /// Fetch posts and polls from the API with caching
   Future<void> fetchPosts({bool refresh = false}) async {
-    // Reset pagination state for refresh or first load
-    if (refresh || _posts.isEmpty) {
-      _currentPage = 1;
-      _hasMoreData = true;
+    // Get current tab cache
+    final currentCache = _isFollowingTab ? _followingPosts : _forYouPosts;
+    final currentCachePage = _isFollowingTab ? _followingPage : _forYouPage;
+    final currentCacheHasMore = _isFollowingTab ? _followingHasMoreData : _forYouHasMoreData;
+    
+    // If we have cached data and not refreshing, use cache
+    if (!refresh && currentCache.isNotEmpty) {
+      print('SocialFeedController: Using cached posts for ${_isFollowingTab ? "Following" : "For You"} tab');
+      _posts = List.from(currentCache);
+      _currentPage = currentCachePage;
+      _hasMoreData = currentCacheHasMore;
+      _isLoading = false;
+      _errorMessage = null;
+      notifyListeners();
+      return;
     }
+    
+    // Reset pagination state for refresh or first load
+    if (refresh) {
+      if (_isFollowingTab) {
+        _followingPage = 1;
+        _followingHasMoreData = true;
+      } else {
+        _forYouPage = 1;
+        _forYouHasMoreData = true;
+      }
+    }
+    
+    _currentPage = _isFollowingTab ? _followingPage : _forYouPage;
+    _hasMoreData = _isFollowingTab ? _followingHasMoreData : _forYouHasMoreData;
     
     _isLoading = true;
     _errorMessage = null;
@@ -140,32 +173,57 @@ class SocialFeedController extends ChangeNotifier {
       if(response.data != null ){
         final newPosts = List<PostPollItem>.from(response.data!);
         
-        if (refresh || _posts.isEmpty) {
-          // Replace posts for refresh or initial load
+        if (refresh) {
+          // Replace posts for refresh
           _posts = newPosts;
+          // Update cache
+          if (_isFollowingTab) {
+            _followingPosts = List.from(newPosts);
+          } else {
+            _forYouPosts = List.from(newPosts);
+          }
         } else {
-          // Append posts for pagination
+          // Append posts for pagination  
           _posts.addAll(newPosts);
+          // Update cache
+          if (_isFollowingTab) {
+            _followingPosts.addAll(newPosts);
+          } else {
+            _forYouPosts.addAll(newPosts);
+          }
         }
         
         // Check if we have more data to load
         _hasMoreData = newPosts.length >= _pageSize;
         
+        // Update cache pagination state
+        if (_isFollowingTab) {
+          _followingHasMoreData = _hasMoreData;
+          _followingPage = _currentPage;
+        } else {
+          _forYouHasMoreData = _hasMoreData;
+          _forYouPage = _currentPage;
+        }
+        
         print('SocialFeedController: Successfully loaded ${newPosts.length} posts (page $_currentPage)');
         print('SocialFeedController: Total posts: ${_posts.length}, hasMoreData: $_hasMoreData');
-        print('SocialFeedController: Pagination logic - newPosts.length: ${newPosts.length}, _pageSize: $_pageSize, hasMoreData: $_hasMoreData');
         
-        if (_posts.isNotEmpty) {
-          print('SocialFeedController: First post ID: ${_posts.first.id}, description: ${_posts.first.description}');
-        } else {
-          print('SocialFeedController: Response has no posts - empty array');
-        }
       } else {
         print('SocialFeedController: Response data is null - setting empty array');
-        if (refresh || _posts.isEmpty) {
+        if (refresh) {
           _posts = [];
+          if (_isFollowingTab) {
+            _followingPosts = [];
+          } else {
+            _forYouPosts = [];
+          }
         }
         _hasMoreData = false;
+        if (_isFollowingTab) {
+          _followingHasMoreData = false;
+        } else {
+          _forYouHasMoreData = false;
+        }
       }
       _errorMessage = null;
     } catch (e) {
@@ -182,15 +240,25 @@ class SocialFeedController extends ChangeNotifier {
           errorString.contains('no following posts')) {
         // For "no posts" scenarios, don't show error - just show empty state
         _errorMessage = null;
-        if (refresh || _posts.isEmpty) {
+        if (refresh) {
           _posts = [];
+          if (_isFollowingTab) {
+            _followingPosts = [];
+          } else {
+            _forYouPosts = [];
+          }
         }
         _hasMoreData = false;
-        print('SocialFeedController: Treating as empty posts scenario - error: $errorString');
+        if (_isFollowingTab) {
+          _followingHasMoreData = false;
+        } else {
+          _forYouHasMoreData = false;
+        }
+        print('SocialFeedController: Treating as empty posts scenario');
       } else {
         // For genuine errors, show error message
         _errorMessage = e.toString();
-        if (refresh || _posts.isEmpty) {
+        if (refresh) {
           _posts = [];
         }
         _hasMoreData = false;
@@ -199,7 +267,6 @@ class SocialFeedController extends ChangeNotifier {
     } finally {
       _isLoading = false;
       print('SocialFeedController: Loading complete - posts: ${_posts.length}, error: $_errorMessage');
-      debugPaginationState();
       notifyListeners();
     }
   }
@@ -207,6 +274,17 @@ class SocialFeedController extends ChangeNotifier {
   /// Refresh posts data
   Future<void> refreshPosts() async {
     await fetchPosts(refresh: true);
+  }
+
+  /// Clear all cached posts and force reload
+  void clearCache() {
+    _forYouPosts.clear();
+    _followingPosts.clear();
+    _forYouPage = 1;
+    _followingPage = 1;
+    _forYouHasMoreData = true;
+    _followingHasMoreData = true;
+    print('SocialFeedController: Cache cleared');
   }
 
   /// Load more posts for pagination
@@ -221,6 +299,14 @@ class SocialFeedController extends ChangeNotifier {
 
     _isLoadingMore = true;
     _currentPage++;
+    
+    // Update cache page counter
+    if (_isFollowingTab) {
+      _followingPage = _currentPage;
+    } else {
+      _forYouPage = _currentPage;
+    }
+    
     print('SocialFeedController: Loading more posts - page $_currentPage');
     notifyListeners();
 
@@ -241,24 +327,45 @@ class SocialFeedController extends ChangeNotifier {
       if (response.data != null) {
         final newPosts = List<PostPollItem>.from(response.data!);
         
-        // Append new posts to existing list
+        // Append new posts to current list and cache
         _posts.addAll(newPosts);
+        if (_isFollowingTab) {
+          _followingPosts.addAll(newPosts);
+        } else {
+          _forYouPosts.addAll(newPosts);
+        }
         
         // Check if we have more data to load
         _hasMoreData = newPosts.length >= _pageSize;
         
+        // Update cache state
+        if (_isFollowingTab) {
+          _followingHasMoreData = _hasMoreData;
+        } else {
+          _forYouHasMoreData = _hasMoreData;
+        }
+        
         print('SocialFeedController: Successfully loaded ${newPosts.length} more posts (loadMorePosts)');
         print('SocialFeedController: Total posts now: ${_posts.length}, hasMoreData: $_hasMoreData');
-        print('SocialFeedController: LoadMore pagination logic - newPosts.length: ${newPosts.length}, _pageSize: $_pageSize, hasMoreData: $_hasMoreData');
       } else {
         print('SocialFeedController: No more posts available');
         _hasMoreData = false;
+        if (_isFollowingTab) {
+          _followingHasMoreData = false;
+        } else {
+          _forYouHasMoreData = false;
+        }
       }
     } catch (e) {
       print('SocialFeedController: Error loading more posts: $e');
       
       // Revert page number on error
       _currentPage--;
+      if (_isFollowingTab) {
+        _followingPage = _currentPage;
+      } else {
+        _forYouPage = _currentPage;
+      }
       
       // Check if this is a "no more posts" scenario
       final errorString = e.toString().toLowerCase();
@@ -271,6 +378,11 @@ class SocialFeedController extends ChangeNotifier {
           errorString.contains('no following posts')) {
         // This is expected when no more posts are available
         _hasMoreData = false;
+        if (_isFollowingTab) {
+          _followingHasMoreData = false;
+        } else {
+          _forYouHasMoreData = false;
+        }
         print('SocialFeedController: No more posts available');
       } else {
         // For genuine errors, show error in console but don't affect UI too much
@@ -284,10 +396,32 @@ class SocialFeedController extends ChangeNotifier {
 
   /// Switch between For You and Following tabs
   void switchTab(bool isFollowingTab) {
+    print('SocialFeedController: switchTab called - current: $_isFollowingTab, new: $isFollowingTab');
     if (_isFollowingTab != isFollowingTab) {
       _isFollowingTab = isFollowingTab;
-      // Automatically fetch posts for the new tab
-      fetchPosts();
+      print('SocialFeedController: Tab changed to ${isFollowingTab ? "Following" : "For You"} - checking cache');
+      
+      // Get cache for new tab
+      final newTabCache = isFollowingTab ? _followingPosts : _forYouPosts;
+      
+      if (newTabCache.isNotEmpty) {
+        // Use cached data immediately
+        print('SocialFeedController: Found cached data for ${isFollowingTab ? "Following" : "For You"} tab');
+        _posts = List.from(newTabCache);
+        _currentPage = isFollowingTab ? _followingPage : _forYouPage;
+        _hasMoreData = isFollowingTab ? _followingHasMoreData : _forYouHasMoreData;
+        _errorMessage = null;
+        notifyListeners();
+      } else {
+        // No cache available, show loading and fetch
+        print('SocialFeedController: No cache found for ${isFollowingTab ? "Following" : "For You"} tab - fetching posts');
+        _posts.clear();
+        _errorMessage = null;
+        notifyListeners();
+        fetchPosts(refresh: false);
+      }
+    } else {
+      print('SocialFeedController: Tab unchanged - no action needed');
     }
   }
 

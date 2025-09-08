@@ -116,6 +116,7 @@ _$StoryMediaItemImpl _$$StoryMediaItemImplFromJson(Map<String, dynamic> json) =>
       status: json['status'] as String?,
       id: json['_id'] as String?,
       type: json['type'] as String?,
+      thumbnail: json['thumbnail'] as String?,
     );
 
 Map<String, dynamic> _$$StoryMediaItemImplToJson(
@@ -125,6 +126,7 @@ Map<String, dynamic> _$$StoryMediaItemImplToJson(
       'status': instance.status,
       '_id': instance.id,
       'type': instance.type,
+      'thumbnail': instance.thumbnail,
     };
 
 _$StoryChooseTypeIdImpl _$$StoryChooseTypeIdImplFromJson(
@@ -144,6 +146,7 @@ _$StoryChooseTypeIdImpl _$$StoryChooseTypeIdImplFromJson(
       logo: json['logo'] == null
           ? null
           : StoryLogo.fromJson(json['logo'] as Map<String, dynamic>),
+      name: json['name'] as String?,
       vendorId: json['vendorId'] as String?,
     );
 
@@ -157,6 +160,7 @@ Map<String, dynamic> _$$StoryChooseTypeIdImplToJson(
       'updatedAt': instance.updatedAt,
       'companyInfo': instance.companyInfo,
       'logo': instance.logo,
+      'name': instance.name,
       'vendorId': instance.vendorId,
     };
 

@@ -18,6 +18,8 @@ class StoryResponse with _$StoryResponse {
 
 @freezed
 class StoryItem with _$StoryItem {
+  const StoryItem._();
+  
   const factory StoryItem({
     @JsonKey(name: '_id') String? id,
     String? description,
@@ -47,6 +49,17 @@ class StoryItem with _$StoryItem {
 
   factory StoryItem.fromJson(Map<String, dynamic> json) =>
       _$StoryItemFromJson(json);
+
+  /// Get the display name based on chooseType
+  /// If chooseType is "mandir", use name from chooseTypeId
+  /// Otherwise, use companyName from chooseTypeId.companyInfo
+  String get displayName {
+    if (chooseType?.toLowerCase() == 'mandir') {
+      return chooseTypeId?.name ?? 'Unknown';
+    } else {
+      return chooseTypeId?.companyInfo?.companyName ?? 'Unknown';
+    }
+  }
 }
 
 @freezed
@@ -68,6 +81,7 @@ class StoryMediaItem with _$StoryMediaItem {
     String? status,
     @JsonKey(name: '_id') String? id,
     String? type,
+    String? thumbnail,
   }) = _StoryMediaItem;
 
   factory StoryMediaItem.fromJson(Map<String, dynamic> json) =>
@@ -84,6 +98,7 @@ class StoryChooseTypeId with _$StoryChooseTypeId {
     String? updatedAt,
     StoryCompanyInfo? companyInfo,
     StoryLogo? logo,
+    String? name,
     String? vendorId,
   }) = _StoryChooseTypeId;
 

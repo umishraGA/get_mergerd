@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:myapp/main_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../common/constant/endpoints.dart';
@@ -18,14 +17,28 @@ class CreateAccountController extends GetxController {
   }) async {
     isLoading.value = true;
 
-    final url = Uri.parse(Endpoints.signupStep);
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("User token not found"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      isLoading.value = false;
+      return false;
+    }
+
+    final url = Uri.parse('${Endpoints.baseUrl}${Endpoints.signupOtp}');
 
     try {
       final response = await http.put(
         url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
+          'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
           "step": 1,
@@ -106,31 +119,41 @@ class CreateAccountController extends GetxController {
   }) async {
     isLoading.value = true;
 
-    final url = Uri.parse(Endpoints.signupStep);
-    print("url ============= $url");
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("User token not found"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      isLoading.value = false;
+      return false;
+    }
+
+    final url = Uri.parse('${Endpoints.baseUrl}${Endpoints.signupOtp}');
+
     try {
-
-      var bodyRequest = {
-        "step": 2,
-        "firstName": firstName,
-        "dathOfBirth": dateOfBirth,
-        "gender": gender,
-        "country": country,
-        "state": state,
-        "city": city,
-        "area": area,
-        "occupation": occupation,
-        "maritalStatus": maritalStatus,
-      };
-      print("body request ==============>>>>>>>>>>>>>>> $bodyRequest");
-
       final response = await http.put(
         url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
+          'Authorization': 'Bearer $token',
         },
-        body: jsonEncode(bodyRequest),
+        body: jsonEncode({
+          "step": 2,
+          "firstName": firstName,
+          "dathOfBirth": dateOfBirth,
+          "gender": gender,
+          "country": country,
+          "state": state,
+          "city": city,
+          "area": area,
+          "occupation": occupation,
+          "maritalStatus": maritalStatus,
+        }),
       );
 
       debugPrint("Response Status: ${response.statusCode}");
@@ -141,8 +164,6 @@ class CreateAccountController extends GetxController {
           final responseData = jsonDecode(response.body);
 
           if (responseData['success'] == true) {
-            print("isComplete value ====  ${responseData["data"]["isCompleted"]}");
-            AuthHelper.saveProfileCompleted(responseData["data"]["isCompleted"] as bool);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(responseData['message']?.toString() ??

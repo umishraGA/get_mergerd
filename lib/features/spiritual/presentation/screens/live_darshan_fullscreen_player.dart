@@ -108,6 +108,7 @@ class _LiveDarshanFullscreenPlayerState
                   openVideoFrom: OpenVideoFrom.fullscreen,
                   allowFullscreenToggle: true,
                   rememberPosition: true,
+                  postId: 'spiritual_${widget.videoUrl.hashCode}',
                 ),
               ),
 

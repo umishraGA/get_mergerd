@@ -18,6 +18,11 @@ import 'package:myapp/features/posts/data/PostPollViewModel.dart';
 import 'package:myapp/features/posts/models/post_poll_models.dart';
 import 'package:myapp/features/posts/controller/post_controller.dart';
 import 'package:myapp/features/posts/controller/reaction_controller.dart';
+<<<<<<< HEAD
+=======
+import 'package:myapp/features/reports/widgets/report_dialog.dart';
+import 'package:myapp/features/reports/models/report_models.dart';
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
@@ -111,7 +116,14 @@ class PostCardWidget extends StatefulWidget {
     if (!showingPostDetail) return const SizedBox.shrink();
 
     // Extract username from chooseTypeId if available, otherwise use a fallback
+<<<<<<< HEAD
     final String username = _getUsernameFromDynamicChooseTypeId(postDetail.chooseTypeId);
+=======
+    final String username = _getUsernameFromDynamicChooseTypeId(
+      postDetail.chooseTypeId,
+      chooseType: postDetail.chooseType,
+    );
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 
     // Use TweenAnimationBuilder for a more controlled initial animation when opening
     return TweenAnimationBuilder<double>(
@@ -280,6 +292,7 @@ class PostCardWidget extends StatefulWidget {
   }
 
   /// Helper method to safely get username from dynamic chooseTypeId
+<<<<<<< HEAD
   static String _getUsernameFromDynamicChooseTypeId(dynamic chooseTypeId) {
     if (chooseTypeId != null) {
       // Handle business posts - check if it's a Map
@@ -294,10 +307,36 @@ class PostCardWidget extends StatefulWidget {
         }
         
         // Handle temple posts - use temple_id or fallback
+=======
+  static String _getUsernameFromDynamicChooseTypeId(
+    dynamic chooseTypeId, {
+    String? chooseType,
+  }) {
+    if (chooseTypeId != null && chooseTypeId is Map<String, dynamic>) {
+      // If chooseType is "mandir", use name field
+      if (chooseType?.toLowerCase() == 'mandir') {
+        final name = chooseTypeId['name'] as String?;
+        if (name != null && name.isNotEmpty) {
+          return name;
+        }
+        // Fallback to temple_id for backward compatibility
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
         final templeId = chooseTypeId['temple_id'] as String?;
         if (templeId != null) {
           return templeId;
         }
+<<<<<<< HEAD
+=======
+      } else {
+        // For non-mandir types, use company name from companyInfo
+        if (chooseTypeId['companyInfo'] is Map<String, dynamic>) {
+          final companyInfo = chooseTypeId['companyInfo'] as Map<String, dynamic>;
+          final companyName = companyInfo['companyName'] as String?;
+          if (companyName != null && companyName.isNotEmpty) {
+            return companyName;
+          }
+        }
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       }
     }
     return 'Unknown User';
@@ -505,7 +544,11 @@ class _PostCardWidgetState extends State<PostCardWidget>
         }
       }
       
+<<<<<<< HEAD
       // Fallback: If no API selection found, check local image
+=======
+      // Fallback: If no API selection found, check local storage
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       if (_selectedPollOption == null && widget.postId != null) {
         if (_postController.hasUserVoted(widget.postId!)) {
           final votedOptionId = _postController.getUserVotedOption(widget.postId!);
@@ -995,6 +1038,7 @@ class _PostCardWidgetState extends State<PostCardWidget>
                 const SizedBox(width: 13),
 
                 // Username and date (with tap action)
+<<<<<<< HEAD
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1011,10 +1055,39 @@ class _PostCardWidgetState extends State<PostCardWidget>
                       ),
                     ),
                   ],
+=======
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.username,
+                        style: AppTextStyles.bold16,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      Text(
+                        widget.date,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                          fontFamily: 'FacebookSans',
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ],
+                  ),
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                 ),
               ],
             ),
           ),
+<<<<<<< HEAD
+=======
+          
+          const SizedBox(width: 8),
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 
           // Follow button
           OutlinedButton(
@@ -1129,6 +1202,7 @@ class _PostCardWidgetState extends State<PostCardWidget>
   }
 
   void _showReportDialog(BuildContext context) {
+<<<<<<< HEAD
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1260,6 +1334,47 @@ class _PostCardWidgetState extends State<PostCardWidget>
       ),
     );
   }
+=======
+    if (widget.postId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot report post: Post ID not available'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Determine report model based on post type
+    ReportModel reportModel = ReportModel.post; // Default to post
+    String contentType = 'post'; // Default content type
+    
+    if (widget.chooseTypeModel != null) {
+      switch (widget.chooseTypeModel!.toLowerCase()) {
+        case 'polls':
+          reportModel = ReportModel.polls;
+          contentType = 'poll';
+          break;
+        case 'story':
+          reportModel = ReportModel.story;
+          contentType = 'story';
+          break;
+        default:
+          reportModel = ReportModel.post;
+          contentType = 'post';
+      }
+    }
+
+    showReportDialog(
+      context: context,
+      postId: widget.postId!,
+      reportModel: reportModel,
+      contentType: contentType,
+      onPostReported: widget.onPostReported,
+    );
+  }
+
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 
   // Detect video aspect ratio asynchronously
   Future<void> _detectVideoAspectRatio() async {
@@ -1282,6 +1397,7 @@ class _PostCardWidgetState extends State<PostCardWidget>
     }
   }
 
+<<<<<<< HEAD
   // Calculate video height based on video aspect ratio
   double _getVideoHeight(bool isTablet) {
     if (widget.videoPath == null) {
@@ -1289,11 +1405,25 @@ class _PostCardWidgetState extends State<PostCardWidget>
     }
 
     // Use detected aspect ratio if available, otherwise use defaults
+=======
+  // Calculate video height based on video aspect ratio and screen width
+  double _getVideoHeight(bool isTablet) {
+    if (widget.videoPath == null) {
+      return isTablet ? 500 : 400; // Default fallback
+    }
+
+    // Get screen width for calculations
+    final screenWidth = MediaQuery.of(context).size.width;
+    final maxHeight = MediaQuery.of(context).size.height * 0.7; // Max 70% of screen height
+
+    // Use detected aspect ratio if available
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
     final aspectRatio = _videoAspectRatio;
     
     if (aspectRatio != null) {
       // Vertical videos (aspect ratio < 0.8) - like reels, stories
       if (aspectRatio < 0.8) {
+<<<<<<< HEAD
         return isTablet ? 700 : 550;
       }
       // Horizontal videos (aspect ratio > 1.2) - like landscape videos
@@ -1308,6 +1438,27 @@ class _PostCardWidgetState extends State<PostCardWidget>
     
     // Default if aspect ratio not detected yet
     return isTablet ? 400 : 350;
+=======
+        // Calculate height based on screen width and aspect ratio
+        final calculatedHeight = screenWidth / aspectRatio;
+        // Cap the height to prevent extremely tall videos
+        final cappedHeight = calculatedHeight > maxHeight ? maxHeight : calculatedHeight;
+        return cappedHeight;
+      }
+      // Horizontal videos (aspect ratio > 1.2) - like landscape videos
+      else if (aspectRatio > 1.2) {
+        final calculatedHeight = screenWidth / aspectRatio;
+        return calculatedHeight;
+      }
+      // Square videos (aspect ratio 0.8-1.2) - like 1:1 videos
+      else {
+        return screenWidth; // Square aspect ratio
+      }
+    }
+    
+    // Default if aspect ratio not detected yet - make it taller for vertical
+    return isTablet ? 600 : 500;
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
   }
 
   // if mediya is vedio then this screen open
@@ -1316,14 +1467,24 @@ class _PostCardWidgetState extends State<PostCardWidget>
       case PostMediaType.video:
         // if mediya is vedio then this screen open
         return Container(
+<<<<<<< HEAD
           // height: isTablet ? 400 : 250,
+=======
+          height: _getVideoHeight(isTablet),
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
           decoration: const BoxDecoration(color: Colors.black),
           width: double.infinity,
           child: Stack(
             children: [
               // Main video
+<<<<<<< HEAD
               Align(
                 alignment: Alignment.center,
+=======
+              SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                 child: VideoPostWidget(
                   videoPath: widget.videoPath!,
                   thumbnailPath: widget.postImage,
@@ -1331,6 +1492,10 @@ class _PostCardWidgetState extends State<PostCardWidget>
                   onTap: widget.onTap,
                   autoPlay: true,
                   openVideoFrom: OpenVideoFrom.mainPage,
+<<<<<<< HEAD
+=======
+                  postId: widget.postId ?? '',
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                 ),
               ),
 
@@ -1820,6 +1985,7 @@ class _PostCardWidgetState extends State<PostCardWidget>
           isStillLiked, 
           newSelectedReaction
         );
+<<<<<<< HEAD
         
         // Show success feedback
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1829,6 +1995,9 @@ class _PostCardWidgetState extends State<PostCardWidget>
             duration: Duration(seconds: 1),
           ),
         );
+=======
+
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       } else {
         // Handle API failure
         // if (mounted) {

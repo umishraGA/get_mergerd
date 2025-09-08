@@ -762,7 +762,7 @@ class __$$PostPollItemImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$PostPollItemImpl implements _PostPollItem {
+class _$PostPollItemImpl extends _PostPollItem {
   const _$PostPollItemImpl(
       {@JsonKey(name: '_id') required this.id,
       this.description,
@@ -802,7 +802,8 @@ class _$PostPollItemImpl implements _PostPollItem {
         _media = media,
         _reactions = reactions,
         _reactionCount = reactionCount,
-        _options = options;
+        _options = options,
+        super._();
 
   factory _$PostPollItemImpl.fromJson(Map<String, dynamic> json) =>
       _$$PostPollItemImplFromJson(json);
@@ -1044,7 +1045,7 @@ class _$PostPollItemImpl implements _PostPollItem {
   }
 }
 
-abstract class _PostPollItem implements PostPollItem {
+abstract class _PostPollItem extends PostPollItem {
   const factory _PostPollItem(
       {@JsonKey(name: '_id') required final String id,
       final String? description,
@@ -1080,6 +1081,7 @@ abstract class _PostPollItem implements PostPollItem {
       final String? shareUrl,
       final String? pollsId,
       final List<PollOptionsItem>? options}) = _$PostPollItemImpl;
+  const _PostPollItem._() : super._();
 
   factory _PostPollItem.fromJson(Map<String, dynamic> json) =
       _$PostPollItemImpl.fromJson;
@@ -2863,7 +2865,7 @@ CommentResponse _$CommentResponseFromJson(Map<String, dynamic> json) {
 mixin _$CommentResponse {
   int get statusCode => throw _privateConstructorUsedError;
   List<Comment> get data => throw _privateConstructorUsedError;
-  String get message => throw _privateConstructorUsedError;
+  String? get message => throw _privateConstructorUsedError;
   bool get success => throw _privateConstructorUsedError;
 
   /// Serializes this CommentResponse to a JSON map.
@@ -2882,7 +2884,8 @@ abstract class $CommentResponseCopyWith<$Res> {
           CommentResponse value, $Res Function(CommentResponse) then) =
       _$CommentResponseCopyWithImpl<$Res, CommentResponse>;
   @useResult
-  $Res call({int statusCode, List<Comment> data, String message, bool success});
+  $Res call(
+      {int statusCode, List<Comment> data, String? message, bool success});
 }
 
 /// @nodoc
@@ -2902,7 +2905,7 @@ class _$CommentResponseCopyWithImpl<$Res, $Val extends CommentResponse>
   $Res call({
     Object? statusCode = null,
     Object? data = null,
-    Object? message = null,
+    Object? message = freezed,
     Object? success = null,
   }) {
     return _then(_value.copyWith(
@@ -2914,10 +2917,10 @@ class _$CommentResponseCopyWithImpl<$Res, $Val extends CommentResponse>
           ? _value.data
           : data // ignore: cast_nullable_to_non_nullable
               as List<Comment>,
-      message: null == message
+      message: freezed == message
           ? _value.message
           : message // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       success: null == success
           ? _value.success
           : success // ignore: cast_nullable_to_non_nullable
@@ -2934,7 +2937,8 @@ abstract class _$$CommentResponseImplCopyWith<$Res>
       __$$CommentResponseImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({int statusCode, List<Comment> data, String message, bool success});
+  $Res call(
+      {int statusCode, List<Comment> data, String? message, bool success});
 }
 
 /// @nodoc
@@ -2952,7 +2956,7 @@ class __$$CommentResponseImplCopyWithImpl<$Res>
   $Res call({
     Object? statusCode = null,
     Object? data = null,
-    Object? message = null,
+    Object? message = freezed,
     Object? success = null,
   }) {
     return _then(_$CommentResponseImpl(
@@ -2964,10 +2968,10 @@ class __$$CommentResponseImplCopyWithImpl<$Res>
           ? _value._data
           : data // ignore: cast_nullable_to_non_nullable
               as List<Comment>,
-      message: null == message
+      message: freezed == message
           ? _value.message
           : message // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       success: null == success
           ? _value.success
           : success // ignore: cast_nullable_to_non_nullable
@@ -2982,7 +2986,7 @@ class _$CommentResponseImpl implements _CommentResponse {
   const _$CommentResponseImpl(
       {required this.statusCode,
       required final List<Comment> data,
-      required this.message,
+      this.message,
       required this.success})
       : _data = data;
 
@@ -3000,7 +3004,7 @@ class _$CommentResponseImpl implements _CommentResponse {
   }
 
   @override
-  final String message;
+  final String? message;
   @override
   final bool success;
 
@@ -3047,7 +3051,7 @@ abstract class _CommentResponse implements CommentResponse {
   const factory _CommentResponse(
       {required final int statusCode,
       required final List<Comment> data,
-      required final String message,
+      final String? message,
       required final bool success}) = _$CommentResponseImpl;
 
   factory _CommentResponse.fromJson(Map<String, dynamic> json) =
@@ -3058,7 +3062,7 @@ abstract class _CommentResponse implements CommentResponse {
   @override
   List<Comment> get data;
   @override
-  String get message;
+  String? get message;
   @override
   bool get success;
 
@@ -3078,7 +3082,8 @@ Comment _$CommentFromJson(Map<String, dynamic> json) {
 mixin _$Comment {
   @JsonKey(name: '_id')
   String get id => throw _privateConstructorUsedError;
-  String? get postId => throw _privateConstructorUsedError; // Made nullable
+  dynamic get postId =>
+      throw _privateConstructorUsedError; // Changed to dynamic to handle both String and Map
   dynamic get userId =>
       throw _privateConstructorUsedError; // Changed to dynamic to handle both String and Map
   String? get message =>
@@ -3088,6 +3093,7 @@ mixin _$Comment {
       throw _privateConstructorUsedError; // Made nullable to handle null dates
   List<Comment> get replies => throw _privateConstructorUsedError;
   String? get replyMessage => throw _privateConstructorUsedError;
+  bool get isOwner => throw _privateConstructorUsedError;
 
   /// Serializes this Comment to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -3105,13 +3111,14 @@ abstract class $CommentCopyWith<$Res> {
   @useResult
   $Res call(
       {@JsonKey(name: '_id') String id,
-      String? postId,
+      dynamic postId,
       dynamic userId,
       String? message,
       String? parentCommentId,
       String? updatedAt,
       List<Comment> replies,
-      String? replyMessage});
+      String? replyMessage,
+      bool isOwner});
 }
 
 /// @nodoc
@@ -3137,6 +3144,7 @@ class _$CommentCopyWithImpl<$Res, $Val extends Comment>
     Object? updatedAt = freezed,
     Object? replies = null,
     Object? replyMessage = freezed,
+    Object? isOwner = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -3146,7 +3154,7 @@ class _$CommentCopyWithImpl<$Res, $Val extends Comment>
       postId: freezed == postId
           ? _value.postId
           : postId // ignore: cast_nullable_to_non_nullable
-              as String?,
+              as dynamic,
       userId: freezed == userId
           ? _value.userId
           : userId // ignore: cast_nullable_to_non_nullable
@@ -3171,6 +3179,10 @@ class _$CommentCopyWithImpl<$Res, $Val extends Comment>
           ? _value.replyMessage
           : replyMessage // ignore: cast_nullable_to_non_nullable
               as String?,
+      isOwner: null == isOwner
+          ? _value.isOwner
+          : isOwner // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -3184,13 +3196,14 @@ abstract class _$$CommentImplCopyWith<$Res> implements $CommentCopyWith<$Res> {
   @useResult
   $Res call(
       {@JsonKey(name: '_id') String id,
-      String? postId,
+      dynamic postId,
       dynamic userId,
       String? message,
       String? parentCommentId,
       String? updatedAt,
       List<Comment> replies,
-      String? replyMessage});
+      String? replyMessage,
+      bool isOwner});
 }
 
 /// @nodoc
@@ -3214,6 +3227,7 @@ class __$$CommentImplCopyWithImpl<$Res>
     Object? updatedAt = freezed,
     Object? replies = null,
     Object? replyMessage = freezed,
+    Object? isOwner = null,
   }) {
     return _then(_$CommentImpl(
       id: null == id
@@ -3223,7 +3237,7 @@ class __$$CommentImplCopyWithImpl<$Res>
       postId: freezed == postId
           ? _value.postId
           : postId // ignore: cast_nullable_to_non_nullable
-              as String?,
+              as dynamic,
       userId: freezed == userId
           ? _value.userId
           : userId // ignore: cast_nullable_to_non_nullable
@@ -3248,6 +3262,10 @@ class __$$CommentImplCopyWithImpl<$Res>
           ? _value.replyMessage
           : replyMessage // ignore: cast_nullable_to_non_nullable
               as String?,
+      isOwner: null == isOwner
+          ? _value.isOwner
+          : isOwner // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -3263,7 +3281,8 @@ class _$CommentImpl implements _Comment {
       this.parentCommentId,
       this.updatedAt,
       final List<Comment> replies = const [],
-      this.replyMessage})
+      this.replyMessage,
+      this.isOwner = false})
       : _replies = replies;
 
   factory _$CommentImpl.fromJson(Map<String, dynamic> json) =>
@@ -3273,8 +3292,8 @@ class _$CommentImpl implements _Comment {
   @JsonKey(name: '_id')
   final String id;
   @override
-  final String? postId;
-// Made nullable
+  final dynamic postId;
+// Changed to dynamic to handle both String and Map
   @override
   final dynamic userId;
 // Changed to dynamic to handle both String and Map
@@ -3298,10 +3317,13 @@ class _$CommentImpl implements _Comment {
 
   @override
   final String? replyMessage;
+  @override
+  @JsonKey()
+  final bool isOwner;
 
   @override
   String toString() {
-    return 'Comment(id: $id, postId: $postId, userId: $userId, message: $message, parentCommentId: $parentCommentId, updatedAt: $updatedAt, replies: $replies, replyMessage: $replyMessage)';
+    return 'Comment(id: $id, postId: $postId, userId: $userId, message: $message, parentCommentId: $parentCommentId, updatedAt: $updatedAt, replies: $replies, replyMessage: $replyMessage, isOwner: $isOwner)';
   }
 
   @override
@@ -3310,7 +3332,7 @@ class _$CommentImpl implements _Comment {
         (other.runtimeType == runtimeType &&
             other is _$CommentImpl &&
             (identical(other.id, id) || other.id == id) &&
-            (identical(other.postId, postId) || other.postId == postId) &&
+            const DeepCollectionEquality().equals(other.postId, postId) &&
             const DeepCollectionEquality().equals(other.userId, userId) &&
             (identical(other.message, message) || other.message == message) &&
             (identical(other.parentCommentId, parentCommentId) ||
@@ -3319,7 +3341,8 @@ class _$CommentImpl implements _Comment {
                 other.updatedAt == updatedAt) &&
             const DeepCollectionEquality().equals(other._replies, _replies) &&
             (identical(other.replyMessage, replyMessage) ||
-                other.replyMessage == replyMessage));
+                other.replyMessage == replyMessage) &&
+            (identical(other.isOwner, isOwner) || other.isOwner == isOwner));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -3327,13 +3350,14 @@ class _$CommentImpl implements _Comment {
   int get hashCode => Object.hash(
       runtimeType,
       id,
-      postId,
+      const DeepCollectionEquality().hash(postId),
       const DeepCollectionEquality().hash(userId),
       message,
       parentCommentId,
       updatedAt,
       const DeepCollectionEquality().hash(_replies),
-      replyMessage);
+      replyMessage,
+      isOwner);
 
   /// Create a copy of Comment
   /// with the given fields replaced by the non-null parameter values.
@@ -3354,13 +3378,14 @@ class _$CommentImpl implements _Comment {
 abstract class _Comment implements Comment {
   const factory _Comment(
       {@JsonKey(name: '_id') required final String id,
-      final String? postId,
+      final dynamic postId,
       final dynamic userId,
       final String? message,
       final String? parentCommentId,
       final String? updatedAt,
       final List<Comment> replies,
-      final String? replyMessage}) = _$CommentImpl;
+      final String? replyMessage,
+      final bool isOwner}) = _$CommentImpl;
 
   factory _Comment.fromJson(Map<String, dynamic> json) = _$CommentImpl.fromJson;
 
@@ -3368,7 +3393,7 @@ abstract class _Comment implements Comment {
   @JsonKey(name: '_id')
   String get id;
   @override
-  String? get postId; // Made nullable
+  dynamic get postId; // Changed to dynamic to handle both String and Map
   @override
   dynamic get userId; // Changed to dynamic to handle both String and Map
   @override
@@ -3381,6 +3406,8 @@ abstract class _Comment implements Comment {
   List<Comment> get replies;
   @override
   String? get replyMessage;
+  @override
+  bool get isOwner;
 
   /// Create a copy of Comment
   /// with the given fields replaced by the non-null parameter values.
@@ -3719,7 +3746,7 @@ AddCommentResponse _$AddCommentResponseFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$AddCommentResponse {
   int get statusCode => throw _privateConstructorUsedError;
-  String get message => throw _privateConstructorUsedError;
+  String? get message => throw _privateConstructorUsedError;
   bool get success => throw _privateConstructorUsedError;
   dynamic get data => throw _privateConstructorUsedError;
 
@@ -3739,7 +3766,7 @@ abstract class $AddCommentResponseCopyWith<$Res> {
           AddCommentResponse value, $Res Function(AddCommentResponse) then) =
       _$AddCommentResponseCopyWithImpl<$Res, AddCommentResponse>;
   @useResult
-  $Res call({int statusCode, String message, bool success, dynamic data});
+  $Res call({int statusCode, String? message, bool success, dynamic data});
 }
 
 /// @nodoc
@@ -3758,7 +3785,7 @@ class _$AddCommentResponseCopyWithImpl<$Res, $Val extends AddCommentResponse>
   @override
   $Res call({
     Object? statusCode = null,
-    Object? message = null,
+    Object? message = freezed,
     Object? success = null,
     Object? data = freezed,
   }) {
@@ -3767,10 +3794,10 @@ class _$AddCommentResponseCopyWithImpl<$Res, $Val extends AddCommentResponse>
           ? _value.statusCode
           : statusCode // ignore: cast_nullable_to_non_nullable
               as int,
-      message: null == message
+      message: freezed == message
           ? _value.message
           : message // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       success: null == success
           ? _value.success
           : success // ignore: cast_nullable_to_non_nullable
@@ -3791,7 +3818,7 @@ abstract class _$$AddCommentResponseImplCopyWith<$Res>
       __$$AddCommentResponseImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({int statusCode, String message, bool success, dynamic data});
+  $Res call({int statusCode, String? message, bool success, dynamic data});
 }
 
 /// @nodoc
@@ -3808,7 +3835,7 @@ class __$$AddCommentResponseImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? statusCode = null,
-    Object? message = null,
+    Object? message = freezed,
     Object? success = null,
     Object? data = freezed,
   }) {
@@ -3817,10 +3844,10 @@ class __$$AddCommentResponseImplCopyWithImpl<$Res>
           ? _value.statusCode
           : statusCode // ignore: cast_nullable_to_non_nullable
               as int,
-      message: null == message
+      message: freezed == message
           ? _value.message
           : message // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       success: null == success
           ? _value.success
           : success // ignore: cast_nullable_to_non_nullable
@@ -3838,7 +3865,7 @@ class __$$AddCommentResponseImplCopyWithImpl<$Res>
 class _$AddCommentResponseImpl implements _AddCommentResponse {
   const _$AddCommentResponseImpl(
       {required this.statusCode,
-      required this.message,
+      this.message,
       required this.success,
       this.data});
 
@@ -3848,7 +3875,7 @@ class _$AddCommentResponseImpl implements _AddCommentResponse {
   @override
   final int statusCode;
   @override
-  final String message;
+  final String? message;
   @override
   final bool success;
   @override
@@ -3896,7 +3923,7 @@ class _$AddCommentResponseImpl implements _AddCommentResponse {
 abstract class _AddCommentResponse implements AddCommentResponse {
   const factory _AddCommentResponse(
       {required final int statusCode,
-      required final String message,
+      final String? message,
       required final bool success,
       final dynamic data}) = _$AddCommentResponseImpl;
 
@@ -3906,7 +3933,7 @@ abstract class _AddCommentResponse implements AddCommentResponse {
   @override
   int get statusCode;
   @override
-  String get message;
+  String? get message;
   @override
   bool get success;
   @override

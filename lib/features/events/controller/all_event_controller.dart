@@ -3,8 +3,11 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+<<<<<<< HEAD
 import '../../../utils/dio/auth_helper.dart';
 
+=======
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 class AllEventsController extends GetxController {
   RxBool isLoading = false.obs;
   RxList events = [].obs;
@@ -13,13 +16,28 @@ class AllEventsController extends GetxController {
     try {
       isLoading.value = true;
 
+<<<<<<< HEAD
   
 
+=======
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString("token");
+
+      print("📌 Saved Token: $token");
+
+      if (token == null) {
+        throw Exception("Token not found in SharedPreferences");
+      }
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 
       const String url = "https://api.gamsgroup.in/user/event/All-events";
 
       var headers = {
+<<<<<<< HEAD
         "Authorization": "Bearer ${AuthHelper.getAuthToken}",
+=======
+        "Authorization": "Bearer $token",
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
         "Content-Type": "application/json"
       };
 

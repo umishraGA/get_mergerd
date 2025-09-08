@@ -110,7 +110,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   Future<void> _loadCurrentUserId() async {
     try {
-      _currentUserId = AuthHelper.getUserId;
+      _currentUserId = await AuthHelper.getUserId;
       debugPrint('Current user ID loaded from AuthHelper: $_currentUserId');
       
       // If no user ID found in AuthHelper, try to extract from token
@@ -209,6 +209,21 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
           _comments = [];
           _isLoading = false;
         });
+        
+        // Show error for unsuccessful API response
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Comments could not be loaded from server'),
+              backgroundColor: Colors.orange,
+              action: SnackBarAction(
+                label: 'Retry',
+                textColor: Colors.white,
+                onPressed: () => _loadComments(),
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -216,6 +231,19 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
           _comments = [];
           _isLoading = false;
         });
+        
+        // Show error message to user
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load comments: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _loadComments(),
+            ),
+          ),
+        );
       }
       debugPrint('Error loading comments: $e');
     }
@@ -223,10 +251,23 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   Future<void> _playCommentSound() async {
     try {
+      // Stop any current playback first
+      await _audioPlayer.stop();
+      // Seek to beginning
       await _audioPlayer.seek(Duration.zero);
+      // Play the sound
       await _audioPlayer.play();
+      debugPrint('Comment sound played successfully');
     } catch (e) {
       debugPrint('Error playing comment sound: $e');
+      // Try to reinitialize audio if there was an error
+      try {
+        await _audioPlayer.setAsset('assets/audio/comment_audio.mp3');
+        await _audioPlayer.play();
+        debugPrint('Comment sound played after reinitializing');
+      } catch (retryError) {
+        debugPrint('Failed to play comment sound after retry: $retryError');
+      }
     }
   }
 
@@ -315,16 +356,18 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         continue;
       }
       
-      // Extract username from userId (which can be String or Map)
+      // Extract username and profile image from userId
       String username = _extractUsername(apiComment.userId, commentId: apiComment.id);
+      String userImage = _extractUserImage(apiComment.userId);
       debugPrint('Extracted username for comment ${apiComment.id}: $username');
+      debugPrint('Extracted userImage for comment ${apiComment.id}: $userImage');
       debugPrint('Current user ID: $_currentUserId');
       
       // Create main comment
       final mainComment = CommentModel(
         id: apiComment.id,
-        username: username,
-        userImage: 'assets/images/username_comment.png',
+        username: apiComment.isOwner ? 'You' : username,
+        userImage: userImage,
         text: apiComment.message!,
         timestamp: DateTime.tryParse(apiComment.updatedAt ?? '') ?? DateTime.now(),
         isReply: false,
@@ -344,11 +387,12 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         }
         
         String replyUsername = _extractUsername(reply.userId, commentId: reply.id);
+        String replyUserImage = _extractUserImage(reply.userId);
         
         final replyComment = CommentModel(
           id: reply.id,
-          username: replyUsername,
-          userImage: 'assets/images/username_comment.png',
+          username: reply.isOwner ? 'You' : replyUsername,
+          userImage: replyUserImage,
           text: reply.replyMessage!,
           timestamp: DateTime.tryParse(reply.updatedAt ?? '') ?? DateTime.now(),
           parentId: apiComment.id,
@@ -378,16 +422,40 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       return userId.isNotEmpty ? userId : 'Anonymous';
     } else if (userId is Map<String, dynamic>) {
       debugPrint('userId is Map: $userId');
-      // Try to extract username from user object
+      // Try to extract full name from firstName and lastName
+      final firstName = userId['firstName']?.toString();
+      final lastName = userId['lastName']?.toString();
       final name = userId['name']?.toString();
       final username = userId['username']?.toString();
       final phone = userId['phone']?.toString();
       
-      debugPrint('Extracted from Map - name: $name, username: $username, phone: $phone');
-      return name ?? username ?? phone ?? 'Anonymous';
+      // Construct full name from firstName and lastName
+      String fullName = '';
+      if (firstName != null && firstName.isNotEmpty) {
+        fullName = firstName;
+        if (lastName != null && lastName.isNotEmpty) {
+          fullName += ' $lastName';
+        }
+      }
+      
+      debugPrint('Extracted from Map - firstName: $firstName, lastName: $lastName, fullName: $fullName');
+      return fullName.isNotEmpty ? fullName : (name ?? username ?? phone ?? 'Anonymous');
     }
     debugPrint('userId is neither String nor Map, returning Anonymous');
     return 'Anonymous';
+  }
+
+  String _extractUserImage(dynamic userId) {
+    debugPrint('Extracting user image for userId: $userId (type: ${userId.runtimeType})');
+    
+    if (userId is Map<String, dynamic>) {
+      final image = userId['image']?.toString();
+      debugPrint('Extracted image from Map: $image');
+      return image ?? 'assets/images/username_comment.png';
+    }
+    
+    debugPrint('userId is not Map, returning default image');
+    return 'assets/images/username_comment.png';
   }
 
   bool _isCurrentUser(dynamic userId, {String? commentId}) {

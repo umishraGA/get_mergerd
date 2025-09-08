@@ -8,7 +8,11 @@ class StoriesShimmerLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+<<<<<<< HEAD
       height: 100,
+=======
+      height: 180, // Increased height to accommodate rectangular story skeletons
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
@@ -35,6 +39,7 @@ class StoriesShimmerLoading extends StatelessWidget {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,
+<<<<<<< HEAD
       child: Column(
         children: [
           // Story circle
@@ -57,6 +62,66 @@ class StoriesShimmerLoading extends StatelessWidget {
             ),
           ),
         ],
+=======
+      child: Container(
+        width: 118,
+        height: 160, // Approximate height to match story card aspect ratio
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Main story background
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            // Profile circle placeholder (matching the actual position)
+            Positioned(
+              top: 12,
+              left: 8,
+              child: Container(
+                width: 52, // 24 radius * 2 + 2 padding * 2
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.grey[400]!,
+                    width: 2.5,
+                  ),
+                ),
+              ),
+            ),
+            // Username placeholder at bottom
+            Positioned(
+              bottom: 10,
+              left: 8,
+              right: 8,
+              child: Container(
+                height: 12,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+          ],
+        ),
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       ),
     );
   }

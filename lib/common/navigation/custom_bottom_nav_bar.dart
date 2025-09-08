@@ -14,6 +14,8 @@ class CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     Widget bottomBar = Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
@@ -39,7 +41,6 @@ class CustomBottomNavBar extends StatelessWidget {
                 child: _buildNavItem(
                   icon: 'assets/images/happening.png',
                   label: 'Happening',
-                  color: selectedIndex == 0 ? Colors.white : Colors.grey.shade400,
                   isSelected: selectedIndex == 0,
                   onTap: () => onItemTapped(0),
                 ),
@@ -48,7 +49,6 @@ class CustomBottomNavBar extends StatelessWidget {
                 child: _buildNavItem(
                   icon: 'assets/images/spirtual.png',
                   label: 'Spiritual',
-                  color: selectedIndex == 1 ? Colors.white : Colors.grey.shade400,
                   isSelected: selectedIndex == 1,
                   onTap: () => onItemTapped(1),
                 ),
@@ -57,7 +57,6 @@ class CustomBottomNavBar extends StatelessWidget {
                 child: _buildNavItem(
                   icon: 'assets/images/listings.png',
                   label: 'Listings',
-                  color: selectedIndex == 2 ? Colors.white : Colors.grey.shade400,
                   isSelected: selectedIndex == 2,
                   onTap: () => onItemTapped(2),
                 ),
@@ -66,7 +65,6 @@ class CustomBottomNavBar extends StatelessWidget {
                 child: _buildNavItem(
                   icon: 'assets/images/utsav.png',
                   label: 'Utsav',
-                  color: selectedIndex == 3 ? Colors.white : Colors.grey.shade400,
                   isSelected: selectedIndex == 3,
                   onTap: () => onItemTapped(3),
                 ),
@@ -75,7 +73,6 @@ class CustomBottomNavBar extends StatelessWidget {
                 child: _buildNavItem(
                   icon: 'assets/images/events.png',
                   label: 'Events',
-                  color: selectedIndex == 4 ? Colors.white : Colors.grey.shade400,
                   isSelected: selectedIndex == 4,
                   onTap: () => onItemTapped(4),
                 ),
@@ -84,7 +81,6 @@ class CustomBottomNavBar extends StatelessWidget {
                 child: _buildNavItemWithIcon(
                   icon: Icons.quiz,
                   label: 'Quiz',
-                  color: selectedIndex == 5 ? Colors.white : Colors.grey.shade400,
                   isSelected: false,
                   onTap: () => onItemTapped(5),
                 ),
@@ -115,23 +111,36 @@ class CustomBottomNavBar extends StatelessWidget {
   Widget _buildNavItem({
     required String icon,
     required String label,
-    required Color color,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(30),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              icon,
-              width: 24,
-              height: 24,
-              color: color,
+            AnimatedScale(
+              scale: isSelected ? 1.1 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              child: ColorFiltered(
+                colorFilter: ColorFilter.mode(
+                  isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+                  BlendMode.modulate,
+                ),
+                child: Image.asset(
+                  icon,
+                  width: 24,
+                  height: 24,
+                ),
+              ),
             ),
             const SizedBox(height: 4),
             FittedBox(
@@ -140,8 +149,8 @@ class CustomBottomNavBar extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: color,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.8),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -156,22 +165,30 @@ class CustomBottomNavBar extends StatelessWidget {
   Widget _buildNavItemWithIcon({
     required IconData icon,
     required String label,
-    required Color color,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(30),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 24,
-              color: color,
+            AnimatedScale(
+              scale: isSelected ? 1.1 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                icon,
+                size: 24,
+                color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+              ),
             ),
             const SizedBox(height: 4),
             FittedBox(
@@ -180,8 +197,8 @@ class CustomBottomNavBar extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: color,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.8),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

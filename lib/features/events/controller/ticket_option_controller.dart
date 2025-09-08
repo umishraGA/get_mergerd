@@ -3,8 +3,11 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+<<<<<<< HEAD
 import '../../../utils/dio/auth_helper.dart';
 
+=======
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 class TicketController extends GetxController {
   var isLoading = false.obs;
   var tickets = <dynamic>[].obs;
@@ -14,12 +17,28 @@ class TicketController extends GetxController {
     try {
       isLoading.value = true;
 
+<<<<<<< HEAD
   
 
 
       var headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
+=======
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString("token");
+
+      print("🔹 Token from SharedPreferences: $token");
+
+      if (token == null) {
+        Get.snackbar("Error", "No token found. Please login again");
+        return;
+      }
+
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       };
 
       var body = json.encode({"eventid": eventId});

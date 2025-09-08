@@ -44,6 +44,12 @@ class _LocationPermissionPageState extends State<LocationPermissionPage> {
 
   Future<void> _saveLocationToPrefs(double latitude, double longitude, {String? locationText, String? formattedAddress}) async {
     try {
+      // Validate coordinates before saving
+      if (latitude == 0.0 && longitude == 0.0) {
+        debugPrint('LocationPermissionPage: Refusing to save invalid coordinates (0.0, 0.0)');
+        throw Exception('Invalid coordinates - cannot save (0.0, 0.0)');
+      }
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble('user_latitude', latitude);
       await prefs.setDouble('user_longitude', longitude);
@@ -60,16 +66,26 @@ class _LocationPermissionPageState extends State<LocationPermissionPage> {
         // Also save to the keys that top bar reads from
         await prefs.setString('selected_location_address', formattedAddress);
       }
+
+      debugPrint('LocationPermissionPage: Successfully saved location: $latitude, $longitude');
     } catch (e) {
       debugPrint('Error saving location to SharedPreferences: $e');
+      rethrow; // Re-throw so caller knows saving failed
     }
   }
 
   Future<void> _getLocationTextFromCoordinates(double latitude, double longitude) async {
     try {
+      // Add timeout to prevent long loading times
       final places = await _placesService.reverseGeocode(
         latitude: latitude,
         longitude: longitude,
+      ).timeout(
+        const Duration(seconds: 8), // 8 second timeout for reverse geocoding
+        onTimeout: () {
+          debugPrint('Reverse geocoding timed out, saving coordinates only');
+          return <PlaceDetails>[];
+        },
       );
       
       if (places.isNotEmpty) {
@@ -88,6 +104,9 @@ class _LocationPermissionPageState extends State<LocationPermissionPage> {
         await prefs.setString('selected_place_id', place.placeId);
         
         debugPrint('Location resolved: ${place.name} - ${place.formattedAddress}');
+      } else {
+        // Save coordinates without text if no places found or timeout
+        await _saveLocationToPrefs(latitude, longitude);
       }
     } catch (e) {
       debugPrint('Error getting location text: $e');
@@ -103,13 +122,35 @@ class _LocationPermissionPageState extends State<LocationPermissionPage> {
     });
 
     try {
+      // Try medium accuracy first with longer timeout
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
+        timeLimit: const Duration(seconds: 20), // Increased timeout for better reliability
       );
 
-      // Get location text using reverse geocoding
-      await _getLocationTextFromCoordinates(position.latitude, position.longitude);
+      // Validate coordinates - reject if they are 0.0 or invalid
+      if (position.latitude == 0.0 && position.longitude == 0.0) {
+        debugPrint('LocationPermissionPage: Got invalid coordinates (0.0, 0.0), retrying with high accuracy...');
+
+        // Retry with high accuracy if we got invalid coordinates
+        final retryPosition = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 25), // Longer timeout for high accuracy retry
+        );
+
+        if (retryPosition.latitude == 0.0 && retryPosition.longitude == 0.0) {
+          throw Exception('Unable to get valid coordinates - received (0.0, 0.0)');
+        }
+
+        // Use retry position if valid
+        await _getLocationTextFromCoordinates(retryPosition.latitude, retryPosition.longitude);
+        debugPrint('LocationPermissionPage: Successfully got valid coordinates on retry: ${retryPosition.latitude}, ${retryPosition.longitude}');
+      } else {
+        // Use original position if valid
+        await _getLocationTextFromCoordinates(position.latitude, position.longitude);
+        debugPrint('LocationPermissionPage: Got valid coordinates: ${position.latitude}, ${position.longitude}');
+      }
+
       await AuthHelper.savePermissionStatus(true);
       
       setState(() {
@@ -119,15 +160,44 @@ class _LocationPermissionPageState extends State<LocationPermissionPage> {
       widget.onPermissionGranted?.call();
       
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to get current location: ${e.toString()}';
-        _isFetchingLocation = false;
-      });
-      
-      // Still call onPermissionGranted even if location fetch fails
-      // since permission was granted
-      await AuthHelper.savePermissionStatus(true);
-      widget.onPermissionGranted?.call();
+      debugPrint('LocationPermissionPage: Error getting location with medium accuracy: $e');
+
+      // If medium accuracy fails, try with low accuracy for faster fix
+      try {
+        debugPrint('LocationPermissionPage: Trying with low accuracy as fallback...');
+        final fallbackPosition = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.low, // Use low accuracy for faster results
+          timeLimit: const Duration(seconds: 15), // Shorter timeout for low accuracy
+        );
+
+        // Validate fallback coordinates
+        if (fallbackPosition.latitude == 0.0 && fallbackPosition.longitude == 0.0) {
+          throw Exception('Unable to get valid coordinates - received (0.0, 0.0)');
+        }
+
+        // Use fallback position if valid
+        await _getLocationTextFromCoordinates(fallbackPosition.latitude, fallbackPosition.longitude);
+        await AuthHelper.savePermissionStatus(true);
+
+        setState(() {
+          _isFetchingLocation = false;
+        });
+
+        debugPrint('LocationPermissionPage: Successfully got location with low accuracy: ${fallbackPosition.latitude}, ${fallbackPosition.longitude}');
+        widget.onPermissionGranted?.call();
+        return;
+
+      } catch (fallbackError) {
+        debugPrint('LocationPermissionPage: Fallback also failed: $fallbackError');
+        setState(() {
+          _errorMessage = 'Unable to get your location. Please ensure GPS is enabled and try again. Error: ${e.toString()}';
+          _isFetchingLocation = false;
+        });
+
+        // Don't save permission status as successful if we can't get valid coordinates
+        // Let user retry instead
+        widget.onPermissionDenied?.call();
+      }
     }
   }
 
@@ -155,7 +225,7 @@ class _LocationPermissionPageState extends State<LocationPermissionPage> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           setState(() {
-            _errorMessage = 'Location permission was denied.';
+            _errorMessage = 'Location permission was denied. You can grant permission in Settings to enable location features.';
             _isLoading = false;
           });
           widget.onPermissionDenied?.call();
@@ -188,6 +258,12 @@ class _LocationPermissionPageState extends State<LocationPermissionPage> {
 
   Future<void> _openAppSettings() async {
     await Geolocator.openAppSettings();
+    // When user returns from settings, check permission status again
+    await Future.delayed(const Duration(milliseconds: 500)); // Small delay to ensure settings are applied
+    setState(() {
+      _errorMessage = null; // Clear previous error message
+    });
+    await _checkPermissionStatus();
   }
 
   String get _platformSpecificMessage {
@@ -356,7 +432,14 @@ class _LocationPermissionPageState extends State<LocationPermissionPage> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: (_isLoading || _isFetchingLocation) ? null : _requestLocationPermission,
+                      onPressed: (_isLoading || _isFetchingLocation) ? null : () {
+                        // If there's a location error, retry getting location directly
+                        if (_errorMessage != null && _errorMessage!.contains('Unable to get your location')) {
+                          _getCurrentLocationAndSave();
+                        } else {
+                          _requestLocationPermission();
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1976D2),
                         foregroundColor: Colors.white,
@@ -376,8 +459,10 @@ class _LocationPermissionPageState extends State<LocationPermissionPage> {
                             )
                           : Text(
                               _isFetchingLocation 
-                                  ? 'Getting your location...'
-                                  : _platformSpecificButtonText,
+                                  ? 'Getting your location...\n(This may take up to 30 seconds)'
+                                  : (_errorMessage != null && _errorMessage!.contains('Unable to get your location'))
+                                      ? 'Retry Location'
+                                      : _platformSpecificButtonText,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -387,7 +472,7 @@ class _LocationPermissionPageState extends State<LocationPermissionPage> {
                   ),
                   
                   if (_errorMessage != null && 
-                      _errorMessage!.contains('permanently denied'))
+                      (_errorMessage!.contains('denied') || _errorMessage!.contains('permanently denied')))
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
                       child: SizedBox(

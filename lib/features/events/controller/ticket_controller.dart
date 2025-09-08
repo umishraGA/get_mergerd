@@ -3,8 +3,11 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+<<<<<<< HEAD
 import '../../../utils/dio/auth_helper.dart';
 
+=======
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 
 class BookedTicket {
   final String id;
@@ -76,11 +79,26 @@ class BookedTicketController extends GetxController {
     errorMessage.value = '';
 
     try {
+<<<<<<< HEAD
+=======
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      if (token == null) {
+        errorMessage.value = "Token not found!";
+        isLoading.value = false;
+        return;
+      }
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 
       final response = await http.post(
         Uri.parse(baseUrl),
         headers: {
+<<<<<<< HEAD
           "Authorization": "Bearer ${AuthHelper.getAuthToken}",
+=======
+          "Authorization": "Bearer $token",
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
           "Content-Type": "application/json",
         },
       );

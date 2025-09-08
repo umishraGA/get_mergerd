@@ -36,6 +36,10 @@ class _LocationSearchWidgetState extends State<LocationSearchWidget> {
   bool _isDetectingLocation = false;
   bool _isLoadingAddresses = false;
   Timer? _debounceTimer;
+<<<<<<< HEAD
+=======
+  bool _isCancelled = false;
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
   String? _currentLocation;
   String _locationName = 'Charbag';
   String _locationAddress = 'current location of user with pin code';
@@ -64,18 +68,36 @@ class _LocationSearchWidgetState extends State<LocationSearchWidget> {
     final query = _searchController.text.trim();
     
     if (query.isEmpty) {
+<<<<<<< HEAD
       setState(() {
         _suggestions.clear();
         _showSuggestions = false;
+=======
+      _isCancelled = true; // Cancel any ongoing requests
+      _debounceTimer?.cancel();
+      setState(() {
+        _suggestions.clear();
+        _showSuggestions = false;
+        _isLoading = false;
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       });
       return;
     }
 
+<<<<<<< HEAD
     // Cancel previous timer
+=======
+    // Cancel previous timer and ongoing requests
+    _isCancelled = true;
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
     _debounceTimer?.cancel();
     
     // Start new timer
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+<<<<<<< HEAD
+=======
+      _isCancelled = false; // Reset cancel flag for new search
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       _searchPlaces(query);
     });
   }
@@ -225,6 +247,7 @@ class _LocationSearchWidgetState extends State<LocationSearchWidget> {
       _showSuggestions = true;
     });
 
+<<<<<<< HEAD
     try {
       // Get user's current location for better suggestions
       final prefs = await SharedPreferences.getInstance();
@@ -249,6 +272,63 @@ class _LocationSearchWidgetState extends State<LocationSearchWidget> {
         _suggestions.clear();
       });
       debugPrint('Error searching places: $e');
+=======
+    int retryCount = 0;
+    const maxRetries = 2;
+
+    while (retryCount <= maxRetries && !_isCancelled) {
+      try {
+        // Check if cancelled before making API call
+        if (_isCancelled) return;
+
+        // Get user's current location for better suggestions
+        final prefs = await SharedPreferences.getInstance();
+        final latitude = prefs.getDouble('user_latitude');
+        final longitude = prefs.getDouble('user_longitude');
+
+        final suggestions = await _placesService.getAutocompleteSuggestions(
+          input: query,
+          latitude: latitude,
+          longitude: longitude,
+          radius: 50000, // 50km radius
+          components: 'country:in', // Restrict to India
+        );
+
+        // Check if cancelled after API call
+        if (_isCancelled) return;
+
+        setState(() {
+          _suggestions = suggestions;
+          _isLoading = false;
+        });
+        return; // Success - exit retry loop
+
+      } catch (e) {
+        debugPrint('Error searching places (attempt ${retryCount + 1}): $e');
+        retryCount++;
+
+        if (retryCount > maxRetries) {
+          // Final attempt failed
+          setState(() {
+            _isLoading = false;
+            _suggestions.clear();
+          });
+
+          // Show user-friendly error message
+          if (mounted && e.toString().contains('timeout')) {
+            _showError('Search timed out. Please check your internet connection and try again.');
+          } else if (mounted && e.toString().contains('OVER_QUERY_LIMIT')) {
+            _showError('Too many searches. Please wait a moment and try again.');
+          } else if (mounted) {
+            _showError('Unable to search locations. Please try again.');
+          }
+          break;
+        } else {
+          // Wait before retry
+          await Future.delayed(Duration(seconds: retryCount));
+        }
+      }
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
     }
   }
 
@@ -257,6 +337,7 @@ class _LocationSearchWidgetState extends State<LocationSearchWidget> {
       _isLoading = true;
     });
 
+<<<<<<< HEAD
     try {
       // Get place details
       final placeDetails = await _placesService.getPlaceDetails(
@@ -296,6 +377,73 @@ class _LocationSearchWidgetState extends State<LocationSearchWidget> {
             backgroundColor: Colors.red,
           ),
         );
+=======
+    int retryCount = 0;
+    const maxRetries = 2;
+
+    while (retryCount <= maxRetries) {
+      try {
+        // Get place details
+        final placeDetails = await _placesService.getPlaceDetails(
+          placeId: suggestion.placeId,
+        );
+
+        // Save location coordinates and details to SharedPreferences
+        await _saveSelectedLocation(placeDetails);
+
+        // Save to recent searches
+        await _saveRecentSearch(suggestion.description);
+
+        // Call callback
+        widget.onLocationSelected?.call(placeDetails);
+
+        // Update UI
+        setState(() {
+          _searchController.text = suggestion.description;
+          _showSuggestions = false;
+          _isLoading = false;
+        });
+
+        // Remove focus
+        _searchFocusNode.unfocus();
+        return; // Success - exit retry loop
+
+      } catch (e) {
+        debugPrint('Error selecting place (attempt ${retryCount + 1}): $e');
+        retryCount++;
+
+        if (retryCount > maxRetries) {
+          // Final attempt failed
+          setState(() {
+            _isLoading = false;
+          });
+
+          // Show user-friendly error message
+          if (mounted) {
+            String errorMessage = 'Failed to get location details.';
+            if (e.toString().contains('timeout')) {
+              errorMessage = 'Location request timed out. Please try again.';
+            } else if (e.toString().contains('OVER_QUERY_LIMIT')) {
+              errorMessage = 'Too many requests. Please wait and try again.';
+            }
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMessage),
+                backgroundColor: Colors.red,
+                action: SnackBarAction(
+                  label: 'Retry',
+                  onPressed: () => _selectSuggestion(suggestion),
+                ),
+              ),
+            );
+          }
+          break;
+        } else {
+          // Wait before retry
+          await Future.delayed(Duration(seconds: retryCount));
+        }
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       }
     }
   }

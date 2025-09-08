@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../mainPage/widgets/TabBarWidget.dart';
 import '../controllers/social_feed_controller.dart';
 import '../controller/reaction_controller.dart';
+import '../controllers/global_video_manager.dart';
 import '../models/post_poll_models.dart';
 import '../widgets/PostCardWidget.dart';
 import '../widgets/ReactionDisplayWidget.dart';
@@ -36,19 +37,20 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
   final GlobalKey _tabBarKey = GlobalKey();
   late SocialFeedController _controller;
   late ReactionController _reactionController;
+  final GlobalVideoManager _globalVideoManager = GlobalVideoManager();
 
   @override
   void initState() {
     super.initState();
     _controller = SocialFeedController();
     _controller.initializeAnimations(this);
-    
+
     // Initialize reaction controller
     _reactionController = context.read<ReactionController>();
 
     // Add listener to detect when tab bar should become sticky
     widget.scrollController.addListener(_updateTabBarPosition);
-    
+
     // Add listener for pagination
     widget.scrollController.addListener(_handleScrollForPagination);
 
@@ -74,22 +76,34 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
       final maxScroll = widget.scrollController.position.maxScrollExtent;
       final currentScroll = widget.scrollController.position.pixels;
       final scrollPercentage = maxScroll > 0 ? (currentScroll / maxScroll) : 0;
-      
+
       print('Scroll Debug: currentScroll: $currentScroll, maxScroll: $maxScroll, percentage: ${(scrollPercentage * 100).toInt()}%');
       print('Pagination State: hasMoreData: ${_controller.hasMoreData}, isLoadingMore: ${_controller.isLoadingMore}, isLoading: ${_controller.isLoading}');
-      
+
       // Trigger pagination when user is 70% down the list (reduced threshold for testing)
       if (currentScroll >= maxScroll * 0.7) {
         print('Scroll threshold reached (70%) - calling loadMorePosts');
         _controller.loadMorePosts();
       }
-      
+
       // Also trigger if user is near the very bottom (within 200 pixels)
       if (maxScroll - currentScroll <= 200) {
         print('Near bottom threshold reached - calling loadMorePosts');
         _controller.loadMorePosts();
       }
     }
+  }
+
+  void _pauseAllVideosInFeed() {
+    // Pause any playing videos in the post feed using global video manager
+    _globalVideoManager.setGlobalPause(true);
+    debugPrint('SocialFeedWidget: Pausing all videos in feed');
+  }
+
+  void _resumeAllVideosInFeed() {
+    // Resume videos in the post feed using global video manager
+    _globalVideoManager.setGlobalPause(false);
+    debugPrint('SocialFeedWidget: Resuming videos in feed');
   }
 
   @override
@@ -178,7 +192,16 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
               },
             );
           } else if (index == 1) {
-            return const SocialFeedStoriesRow();
+            return SocialFeedStoriesRow(
+              onStoryOpened: () {
+                // Pause any playing videos in the feed when a story is opened
+                _pauseAllVideosInFeed();
+              },
+              onStoryClosed: () {
+                // Resume videos when story is closed (if needed)
+                _resumeAllVideosInFeed();
+              },
+            );
           } else if (index == 2) {
             return Visibility(
               visible: !controller.isTabBarSticky,
@@ -299,7 +322,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
     final String postId = post.id;
     final String userId = _getUserId(post);
     print("Post Usernae: $username , Post Detail: ${post.follow}");
-    
+
     // Initialize reaction state for this post only if it doesn't exist
     final existingState = _reactionController.getPostReactionState(postId);
     if (existingState == null) {
@@ -322,7 +345,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
         final displayLikes = reactionState?.likeCount ?? post.likesCount;
         // final displayIsLiked = reactionState?.isLiked ?? post.isLikedByUser;
         final displayIsBookmarked = reactionState?.isBookmarked ?? post.isPostSaved;
-        
+
         return PostCardWidget(
           key: ValueKey(postId),
           profileImage: _getProfileImage(post),
@@ -356,7 +379,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
             final String shareText = post.description != null && post.description!.isNotEmpty
                 ? '${post.description!}\n\n$shareUrl'
                 : shareUrl;
-                
+
             Share.share(shareText);
           },
           onPostReported: (String postId) {
@@ -380,22 +403,22 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
   int _getItemCount(SocialFeedController controller) {
     int baseItems = 3; // Top bar, stories, tab bar
     print('SocialFeedWidget: _getItemCount - isLoading: ${controller.isLoading}, errorMessage: ${controller.errorMessage}, posts.length: ${controller.posts.length}');
-    
+
     if (controller.isLoading && controller.posts.isEmpty || controller.errorMessage != null) {
       return baseItems + 1; // Add loading or error item
     }
-    
+
     // Add empty state handling
     if (controller.posts.isEmpty && !controller.isLoading && controller.errorMessage == null) {
       return baseItems + 1; // Add empty state item
     }
-    
+
     // Add pagination loading indicator if loading more posts
     int itemCount = baseItems + controller.posts.length;
     if (controller.isLoadingMore) {
       itemCount += 1; // Add loading more indicator
     }
-    
+
     return itemCount;
   }
 
@@ -417,7 +440,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
       // Handle business posts - check if it's a Map
       if (post.chooseTypeId is Map<String, dynamic>) {
         final chooseType = post.chooseTypeId as Map<String, dynamic>;
-        
+
         // Try to get company name from companyInfo
         if (chooseType['companyInfo'] is Map<String, dynamic>) {
           final companyInfo = chooseType['companyInfo'] as Map<String, dynamic>;
@@ -426,7 +449,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
             return companyName;
           }
         }
-        
+
         // Handle temple posts - use temple_id or fallback
         final templeId = chooseType['temple_id'] as String?;
         if (templeId != null) {
@@ -442,7 +465,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
       // Handle business posts - check if it's a Map
       if (post.chooseTypeId is Map<String, dynamic>) {
         final chooseType = post.chooseTypeId as Map<String, dynamic>;
-        
+
         // Try to get logo URL from logo object
         if (chooseType['logo'] is Map<String, dynamic>) {
           final logo = chooseType['logo'] as Map<String, dynamic>;
@@ -451,7 +474,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
             return logoUrl;
           }
         }
-        
+
         // Handle temple posts - use image field
         final imageUrl = chooseType['image'] as String?;
         if (imageUrl != null) {
@@ -486,13 +509,13 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
     if (post.type == 'Polls') return PostMediaType.poll;
     if (post.media.isNotEmpty) {
       // Check if there's any video in media array - prioritize video
-      bool hasVideo = post.media.any((media) => 
-          media.type == 'video');
+      bool hasVideo = post.media.any((media) =>
+      media.type == 'video');
       if (hasVideo) return PostMediaType.video;
-      
+
       // Check for multiple images/media items
       if (post.media.length > 1) return PostMediaType.multiImage;
-      
+
       // Single image/media item
       return PostMediaType.image;
     }
@@ -514,7 +537,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
       // Filter out videos and get only images, excluding the first image
       List<String> imageUrls = [];
       bool skipFirst = true;
-      
+
       for (final media in post.media) {
         if (media.type == 'image') {
           if (skipFirst) {
@@ -525,7 +548,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
           imageUrls.add(media.url ?? '');
         }
       }
-      
+
       return imageUrls.isNotEmpty ? imageUrls : null;
     }
     return null;
@@ -555,26 +578,26 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
 
   String _getMainPostImage(PostPollItem post) {
     if (post.media.isEmpty) return '';
-    
+
     // For video posts, find the first video thumbnail/url
     final firstVideoIndex = post.media.indexWhere(
-      (media) => media.type == 'video',
+          (media) => media.type == 'video',
     );
-    
+
     // If we found a video, use it
     if (firstVideoIndex != -1) {
       return post.media[firstVideoIndex].url ?? '';
     }
-    
+
     // For image posts, use first image
     final firstImageIndex = post.media.indexWhere(
-      (media) => media.type == 'image',
+          (media) => media.type == 'image',
     );
-    
+
     if (firstImageIndex != -1) {
       return post.media[firstImageIndex].url ?? '';
     }
-    
+
     // Fallback to first media item if available
     return post.media.isNotEmpty ? (post.media.first.url ?? '') : '';
   }
@@ -585,7 +608,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
     print('SocialFeedWidget: _handleDetailLikeChange called - likes: $likeCount, isLiked: $isLiked, reaction: $reaction');
     if (controller.postDetail != null) {
       print('SocialFeedWidget: Updating post ${controller.postDetail!.id} in main feed');
-      
+
       // Update both controller and reaction controller
       controller.updatePostLikeState(controller.postDetail!.id, likeCount, isLiked, reaction as ReactionType?);
       _reactionController.updateReactionState(
@@ -594,7 +617,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
         isLiked: isLiked,
         selectedReaction: reaction as ReactionType?,
       );
-      
+
       print('SocialFeedWidget: Post update completed');
     } else {
       print('SocialFeedWidget: No postDetail found');
@@ -613,14 +636,14 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
     print('SocialFeedWidget: _handleDetailBookmarkChange called - isBookmarked: $isBookmarked');
     if (controller.postDetail != null) {
       print('SocialFeedWidget: Updating bookmark for post ${controller.postDetail!.id} in main feed');
-      
+
       // Update both controller and reaction controller
       controller.updatePostBookmarkState(controller.postDetail!.id, isBookmarked);
       _reactionController.updateReactionState(
         controller.postDetail!.id,
         isBookmarked: isBookmarked,
       );
-      
+
       print('SocialFeedWidget: Bookmark update completed');
     } else {
       print('SocialFeedWidget: No postDetail found for bookmark update');
@@ -639,7 +662,7 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
     );
   }
 
-  // Handle bookmark changes from PostCard in main feed  
+  // Handle bookmark changes from PostCard in main feed
   void _handlePostBookmarkChange(SocialFeedController controller, String postId, bool isBookmarked) {
     // Update both controller and reaction controller
     controller.updatePostBookmarkState(postId, isBookmarked);
@@ -655,11 +678,11 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
       try {
         String shareText = '';
         String shareUrl = '';
-        
+
         // Build share content from post data
         shareText = '${controller.postDetail!.description ?? "Check out this post"}\n\nShared from Haappening';
         shareUrl = controller.postDetail!.shareUrl ?? '';
-        
+
         if (controller.postDetail!.type == 'Polls') {
           // For polls, share poll question and options
           final content = shareUrl.isNotEmpty ? '$shareText\n\n$shareUrl' : shareText;
@@ -696,11 +719,11 @@ class _SocialFeedWidgetState extends State<SocialFeedWidget>
       }
     }
   }
-  
+
   /// Map API UserReaction to UI ReactionType
   ReactionType? _mapApiReactionToReactionType(UserReaction? apiReaction) {
     if (apiReaction == null) return null;
-    
+
     switch (apiReaction) {
       case UserReaction.love:
         return ReactionType.love;

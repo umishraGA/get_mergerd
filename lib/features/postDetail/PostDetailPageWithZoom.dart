@@ -1414,6 +1414,7 @@ class _PostDetailPageState extends State<PostDetailPageWithZoom>
               thumbnailPath: widget.postImage,
               onDoubleTap: _doubleTapLike,
               onTap: _toggleDetails,
+              postId: widget.postId ?? '',
             ),
           ),
         );

@@ -18,6 +18,8 @@ class PostPollResponse with _$PostPollResponse {
 
 @freezed
 class PostPollItem with _$PostPollItem {
+  const PostPollItem._();
+  
   const factory PostPollItem({
     @JsonKey(name: '_id') required String id,
     String? description,
@@ -57,6 +59,37 @@ class PostPollItem with _$PostPollItem {
 
   factory PostPollItem.fromJson(Map<String, dynamic> json) =>
       _$PostPollItemFromJson(json);
+
+  /// Get the display name based on chooseType
+  /// If chooseType is "mandir", use name from chooseTypeId
+  /// Otherwise, use companyName from chooseTypeId.companyInfo
+  String get displayName {
+    if (chooseTypeId != null && chooseTypeId is Map<String, dynamic>) {
+      final chooseTypeData = chooseTypeId as Map<String, dynamic>;
+      
+      if (chooseType?.toLowerCase() == 'mandir') {
+        final name = chooseTypeData['name'] as String?;
+        if (name != null && name.isNotEmpty) {
+          return name;
+        }
+        // Fallback to temple_id for backward compatibility
+        final templeId = chooseTypeData['temple_id'] as String?;
+        if (templeId != null) {
+          return templeId;
+        }
+      } else {
+        // For non-mandir types, use company name from companyInfo
+        if (chooseTypeData['companyInfo'] is Map<String, dynamic>) {
+          final companyInfo = chooseTypeData['companyInfo'] as Map<String, dynamic>;
+          final companyName = companyInfo['companyName'] as String?;
+          if (companyName != null && companyName.isNotEmpty) {
+            return companyName;
+          }
+        }
+      }
+    }
+    return 'Unknown User';
+  }
 }
 
 enum ChooseType {
@@ -197,7 +230,7 @@ class CommentResponse with _$CommentResponse {
   const factory CommentResponse({
     required int statusCode,
     required List<Comment> data,
-    required String message,
+    String? message,
     required bool success,
   }) = _CommentResponse;
 
@@ -209,13 +242,14 @@ class CommentResponse with _$CommentResponse {
 class Comment with _$Comment {
   const factory Comment({
     @JsonKey(name: '_id') required String id,
-    String? postId, // Made nullable
+    dynamic postId, // Changed to dynamic to handle both String and Map
     dynamic userId, // Changed to dynamic to handle both String and Map
     String? message, // Made nullable to handle null messages
     String? parentCommentId,
     String? updatedAt, // Made nullable to handle null dates
     @Default([]) List<Comment> replies,
     String? replyMessage,
+    @Default(false) bool isOwner, // Add isOwner field from API
   }) = _Comment;
 
   factory Comment.fromJson(Map<String, dynamic> json) =>
@@ -257,7 +291,7 @@ class AddCommentRequest with _$AddCommentRequest {
 class AddCommentResponse with _$AddCommentResponse {
   const factory AddCommentResponse({
     required int statusCode,
-    required String message,
+    String? message,
     required bool success,
     dynamic data,
   }) = _AddCommentResponse;

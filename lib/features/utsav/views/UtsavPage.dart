@@ -183,6 +183,16 @@ class _UtsavPageState extends State<UtsavPage> {
     );
   }
 
+  void _handleNotificationTap() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Notification clicked'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _bannerController.dispose();

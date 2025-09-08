@@ -1,17 +1,26 @@
 import '../../../utils/dio/api_service.dart';
 import '../models/post_poll_models.dart';
 import '../repository/post_poll_repository.dart';
+import '../services/video_post_cache_service.dart';
 
 class PostPollViewModel {
 
   final PostPollRepository postPollRepository;
+  final VideoPostCacheService _videoCacheService = VideoPostCacheService();
 
   PostPollViewModel(): postPollRepository = PostPollRepository(apiService: ApiService());
 
   /// Fetch all posts and polls
   Future<PostPollResponse> fetchPostPolls({int pageNo = 1, int pageSize = 10}) async {
     try {
-      return await postPollRepository.getPostPolls(pageNo: pageNo, pageSize: pageSize);
+      final response = await postPollRepository.getPostPolls(pageNo: pageNo, pageSize: pageSize);
+      
+      // Preload video posts if response is successful
+      if (response.success == true && response.data?.isNotEmpty == true) {
+        _videoCacheService.preloadPostVideos(response.data!);
+      }
+      
+      return response;
     } catch (e) {
       throw Exception('Service error: $e');
     }
@@ -54,6 +63,12 @@ class PostPollViewModel {
       }
       
       print('PostPollViewModel: Validation passed, returning ${response.data?.length ?? 0} posts');
+      
+      // Preload video posts if data is available
+      if (response.data?.isNotEmpty == true) {
+        _videoCacheService.preloadPostVideos(response.data!);
+      }
+      
       return response;
     } catch (e) {
       print('PostPollViewModel: Error occurred: $e');
@@ -91,6 +106,11 @@ class PostPollViewModel {
           response.statusCode != 200 && 
           response.statusCode != 404) {
         throw Exception('API returned status code: ${response.statusCode}');
+      }
+
+      // Preload video posts for following posts too
+      if (response.data?.isNotEmpty == true) {
+        _videoCacheService.preloadPostVideos(response.data!);
       }
 
       return response;

@@ -5,8 +5,18 @@ import '../widgets/StoryCardWidget.dart';
 
 /// Horizontal row widget displaying stories in the social feed
 class SocialFeedStoriesRow extends StatefulWidget {
+  /// Callback when a story is opened (for pausing other media)
+  final VoidCallback? onStoryOpened;
+
+  /// Callback when a story is closed (for resuming other media)
+  final VoidCallback? onStoryClosed;
+
   /// Creates a [SocialFeedStoriesRow] widget
-  const SocialFeedStoriesRow({super.key});
+  const SocialFeedStoriesRow({
+    super.key,
+    this.onStoryOpened,
+    this.onStoryClosed,
+  });
 
   @override
   State<SocialFeedStoriesRow> createState() => _SocialFeedStoriesRowState();
@@ -79,7 +89,6 @@ class _SocialFeedStoriesRowState extends State<SocialFeedStoriesRow> {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            // Prevent parent scroll interference
             physics: const ClampingScrollPhysics(),
             itemCount: stories.length,
             itemBuilder: (context, index) {
@@ -87,7 +96,10 @@ class _SocialFeedStoriesRowState extends State<SocialFeedStoriesRow> {
               return StoryCardWidget(
                 story: story,
                 storyIndex: index,
-                allStories: stories, // Pass only the filtered stories with media
+                allStories: stories,
+                // storyController: _storyController,
+                // onStoryOpened: widget.onStoryOpened,
+                // onStoryClosed: widget.onStoryClosed,
               );
             },
           ),

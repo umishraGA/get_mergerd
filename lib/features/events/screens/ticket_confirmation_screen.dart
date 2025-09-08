@@ -68,6 +68,7 @@ class _TicketConfirmationScreenState extends State<TicketConfirmationScreen> {
   // Option 2: Short format
   String _formatDateTime(String dateTimeString) {
     try {
+<<<<<<< HEAD
       // Parse the string to DateTime
       DateTime dateTime = DateTime.parse(dateTimeString);
 
@@ -75,6 +76,9 @@ class _TicketConfirmationScreenState extends State<TicketConfirmationScreen> {
       dateTime = dateTime.toLocal();
 
       // Format the DateTime
+=======
+      final DateTime dateTime = DateTime.parse(dateTimeString);
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       return DateFormat('MMM dd, yyyy • hh:mm a').format(dateTime);
     } catch (e) {
       return dateTimeString;
@@ -86,7 +90,11 @@ class _TicketConfirmationScreenState extends State<TicketConfirmationScreen> {
 =====================================
 TICKET CONFIRMATION DETAILS
 =====================================
+<<<<<<< HEAD
 Ticket ID: $ticketId 
+=======
+Ticket ID: $ticketId
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 Ticket Name: $ticketName
 Quantity: $quantity
 Price per Ticket: ₹${ticketPrice.toStringAsFixed(2)}
@@ -123,12 +131,17 @@ Payment Details:
       eventId: eventId,
       ticketId: ticketId,
       quantity: quantity,
+<<<<<<< HEAD
       bookedDate: eventDate,
       // bookedDate: DateTime.now().toUtc().toIso8601String(),
+=======
+      bookedDate: DateTime.now().toUtc().toIso8601String(),
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       context: context,
     );
   }
 
+<<<<<<< HEAD
   void _onBookFreeTicket() {
     print("""
 =====================================
@@ -153,6 +166,8 @@ Free Ticket Details:
         context: context);
   }
 
+=======
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -246,8 +261,13 @@ Free Ticket Details:
                               ),
                             ),
                             Text(
+<<<<<<< HEAD
                               totalAmount == 0 ? 'Free' : '₹${subTotal.toStringAsFixed(2)}',
                               style: TextStyle(
+=======
+                              '₹${subTotal.toStringAsFixed(2)}',
+                              style: const TextStyle(
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
                                 color: totalAmount == 0 ? Colors.green : Color(0xFFFC6E30),
@@ -314,9 +334,13 @@ Free Ticket Details:
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
+<<<<<<< HEAD
                           totalAmount == 0
                               ? 'FREE ENTRY TICKET FOR ONE : $quantity Ticket(s)'
                               : 'ENTRY TICKET FOR ONE (₹${ticketPrice.toStringAsFixed(0)}) : $quantity Ticket(s)',
+=======
+                          'ENTRY TICKET FOR ONE (₹${ticketPrice.toStringAsFixed(0)}) : $quantity Ticket(s)',
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -432,6 +456,7 @@ Free Ticket Details:
                       final bool isLoading = paymentController.isLoading.value;
 
                       return ElevatedButton(
+<<<<<<< HEAD
                         onPressed: isLoading
                             ? null
                             : totalAmount == 0
@@ -441,6 +466,11 @@ Free Ticket Details:
                           backgroundColor: totalAmount == 0
                               ? Colors.green
                               : const Color(0xFFE54B4D),
+=======
+                        onPressed: isLoading ? null : _onProceedToPay,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE54B4D),
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                           minimumSize: const Size(double.infinity, 52),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(7),
@@ -456,9 +486,15 @@ Free Ticket Details:
                             strokeWidth: 2,
                           ),
                         )
+<<<<<<< HEAD
                             : Text(
                           totalAmount == 0 ? 'Confirm Booking' : 'Proceed to Pay',
                           style: const TextStyle(
+=======
+                            : const Text(
+                          'Proceed to Pay',
+                          style: TextStyle(
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                             fontSize: 18,
                             fontWeight: FontWeight.w500,
                             color: Colors.white,

@@ -17,7 +17,7 @@ class PostPollRepository {
   /// Get bearer token from SharedPreferences
   Future<String?> _getBearerToken() async {
     try {
-      final token = AuthHelper.getAuthToken;
+      final token = await AuthHelper.getAuthToken;
       print("Token of Auth: $token");
       // await SharedPreferences.getInstance();
       // return prefs.getString('auth_token');

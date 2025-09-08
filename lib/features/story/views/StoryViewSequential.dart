@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/story_response_models.dart';
 import '../controllers/story_controller.dart';
+<<<<<<< HEAD
+=======
+import '../services/story_cache_service.dart';
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 import 'StoryView.dart';
 
 /// A view that automatically navigates through all users' stories in sequence
@@ -27,6 +31,7 @@ class _StoryViewSequentialState extends State<StoryViewSequential> {
   late int _currentUserIndex;
   late PageController _pageController;
   bool _isChangingUser = false;
+  final StoryCacheService _cacheService = StoryCacheService();
 
   // Add variables for swipe down dismissal
   double _verticalDragStart = 0.0;
@@ -37,6 +42,25 @@ class _StoryViewSequentialState extends State<StoryViewSequential> {
     super.initState();
     _currentUserIndex = widget.initialUserIndex;
     _pageController = PageController(initialPage: _currentUserIndex);
+    
+    // Preload stories for better performance
+    _preloadStories();
+  }
+
+  void _preloadStories() {
+    // Preload current user's stories and next user's stories
+    final currentUserStories = widget.allStoriesByUser[widget.usernames[_currentUserIndex]];
+    if (currentUserStories != null) {
+      _cacheService.preloadStoryMedia(currentUserStories);
+    }
+
+    // Preload next user's stories
+    if (_currentUserIndex + 1 < widget.usernames.length) {
+      final nextUserStories = widget.allStoriesByUser[widget.usernames[_currentUserIndex + 1]];
+      if (nextUserStories != null) {
+        _cacheService.preloadStoryMedia(nextUserStories);
+      }
+    }
   }
 
   @override
@@ -89,6 +113,7 @@ class _StoryViewSequentialState extends State<StoryViewSequential> {
         }
       });
     } else {
+<<<<<<< HEAD
       // Last user, close the entire view with smooth transition
       debugPrint('StoryViewSequential: Last user reached, closing story view');
       
@@ -103,6 +128,15 @@ class _StoryViewSequentialState extends State<StoryViewSequential> {
           Navigator.of(context).pop();
         }
       });
+=======
+      // Last user, close the entire view immediately
+      debugPrint('StoryViewSequential: Last user reached, closing story view');
+      
+      // Close immediately without overlay
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
     }
   }
 
@@ -132,6 +166,7 @@ class _StoryViewSequentialState extends State<StoryViewSequential> {
   void _closeAllStories() {
     debugPrint('StoryViewSequential: _closeAllStories called');
     
+<<<<<<< HEAD
     // Add smooth closing transition
     setState(() {
       _isChangingUser = true; // Show loading overlay during close
@@ -144,6 +179,13 @@ class _StoryViewSequentialState extends State<StoryViewSequential> {
         Navigator.of(context).pop();
       }
     });
+=======
+    // Close immediately without transition overlay
+    if (mounted) {
+      debugPrint('StoryViewSequential: Popping navigation');
+      Navigator.of(context).pop();
+    }
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
   }
 
   @override
@@ -159,8 +201,13 @@ class _StoryViewSequentialState extends State<StoryViewSequential> {
             _moveToPreviousUser();
             return false; // Prevent actual back navigation
           } else {
+<<<<<<< HEAD
             // On first user, show smooth close transition
             debugPrint('StoryViewSequential: Back button on first user, closing smoothly');
+=======
+            // On first user, close immediately
+            debugPrint('StoryViewSequential: Back button on first user, closing immediately');
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
             _closeAllStories();
             return false; // We handle the close ourselves
           }

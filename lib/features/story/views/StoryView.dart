@@ -4,7 +4,9 @@ import 'package:video_player/video_player.dart';
 
 import '../models/story_response_models.dart';
 import '../controllers/story_controller.dart';
+import '../services/story_cache_service.dart';
 import '../../posts/widgets/NetworkImageWidget.dart';
+import '../../posts/controllers/global_video_manager.dart';
 
 class StoryView extends StatefulWidget {
   final List<StoryItem> stories;
@@ -43,6 +45,8 @@ class _StoryViewState extends State<StoryView>
   late AnimationController _loadingAnimationController;
   final AudioPlayer _commentAudioPlayer = AudioPlayer();
   final AudioPlayer _reactionAudioPlayer = AudioPlayer();
+  final GlobalVideoManager _globalVideoManager = GlobalVideoManager();
+  final StoryCacheService _cacheService = StoryCacheService();
 
   // Define story durations
   static const Duration _imageDuration = Duration(seconds: 5);
@@ -135,6 +139,28 @@ class _StoryViewState extends State<StoryView>
     _hasCommentText.value = _commentController.text.isNotEmpty;
   }
 
+  void _disposeCurrentVideo() {
+    if (_videoController != null) {
+      // Unregister from global video manager
+      final currentStory = widget.stories[_currentIndex];
+      final videoId = 'story_${currentStory.id}';
+      _globalVideoManager.unregisterVideoController(videoId);
+      
+      try {
+        _videoController!.removeListener(_updateProgress);
+        _videoController!.removeListener(_checkVideoCompletion);
+        _videoController!.pause();
+        // Don't dispose cached controllers - let the cache service manage them
+        // Only dispose if this controller was created directly (not from cache)
+        // The cache service will handle disposal when needed
+      } catch (e) {
+        debugPrint('StoryView: Error disposing video controller: $e');
+      }
+      
+      _videoController = null;
+    }
+  }
+
   void _initializeStory() {
     final currentStory = widget.stories[_currentIndex];
     final mediaType = (currentStory.media?.isNotEmpty ?? false) 
@@ -196,11 +222,12 @@ class _StoryViewState extends State<StoryView>
     });
   }
 
-  void _initializeVideo(String videoUrl) {
-    // Clean up any existing controller
+  Future<void> _initializeVideo(String videoUrl) async {
+    final currentStory = widget.stories[_currentIndex];
+    
+    // Clean up any existing controller (but don't dispose cached ones)
     if (_videoController != null) {
       _videoController!.removeListener(_updateProgress);
-      _videoController!.dispose();
       _videoController = null;
     }
 
@@ -227,23 +254,38 @@ class _StoryViewState extends State<StoryView>
           debugPrint("Fixed URL to HTTPS: $videoUrl");
         }
 
-        // Add headers for Vimeo videos to prevent access issues
-        Map<String, String> headers = {};
-        if (videoUrl.contains('vimeo.com') ||
-            videoUrl.contains('player.vimeo.com')) {
-          headers = {
-            'User-Agent': 'Mozilla/5.0',
-            'Referer': 'https://vimeo.com/',
-          };
-          debugPrint("Added Vimeo headers");
-        }
+        // Try to get cached controller first
+        try {
+          _videoController = await _cacheService.getCachedVideoController(videoUrl, currentStory.id ?? '');
+          debugPrint("Using cached video controller for story: ${currentStory.id}");
+          
+          // Controller is already initialized from cache
+          if (!mounted) return;
+          
+          _onVideoInitialized();
+          return;
+          
+        } catch (e) {
+          debugPrint("Cache failed, falling back to network: $e");
+          
+          // Fallback to network controller
+          Map<String, String> headers = {};
+          if (videoUrl.contains('vimeo.com') ||
+              videoUrl.contains('player.vimeo.com')) {
+            headers = {
+              'User-Agent': 'Mozilla/5.0',
+              'Referer': 'https://vimeo.com/',
+            };
+            debugPrint("Added Vimeo headers");
+          }
 
-        // Create a network controller
-        _videoController = VideoPlayerController.network(
-          videoUrl,
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-          httpHeaders: headers,
-        );
+          // Create a network controller
+          _videoController = VideoPlayerController.network(
+            videoUrl,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+            httpHeaders: headers,
+          );
+        }
       }
 
       _videoController!.initialize().then((_) {
@@ -252,26 +294,7 @@ class _StoryViewState extends State<StoryView>
 
         if (!mounted) return;
 
-        setState(() {
-          _isVideoLoading = false;
-          _debugInfo =
-              'Successfully loaded video: ${_videoController!.value.size.width}x${_videoController!.value.size.height}';
-        });
-
-        if (_videoController!.value.isInitialized) {
-          _videoController!.addListener(_updateProgress);
-          _videoController!.addListener(_checkVideoCompletion);
-          _videoController!.play();
-
-          // Force a rebuild
-          setState(() {});
-        } else {
-          setState(() {
-            _hasVideoError = true;
-            _debugInfo = 'Video initialized but not ready';
-          });
-          _tryFallbackVideo();
-        }
+        _onVideoInitialized();
       }).catchError((error) {
         debugPrint("Error initializing video: $error");
         if (!mounted) return;
@@ -298,6 +321,35 @@ class _StoryViewState extends State<StoryView>
     }
   }
 
+  void _onVideoInitialized() {
+    setState(() {
+      _isVideoLoading = false;
+      _debugInfo =
+          'Successfully loaded video: ${_videoController!.value.size.width}x${_videoController!.value.size.height}';
+    });
+
+    if (_videoController!.value.isInitialized) {
+      _videoController!.addListener(_updateProgress);
+      _videoController!.addListener(_checkVideoCompletion);
+      
+      // Register with global video manager
+      final currentStory = widget.stories[_currentIndex];
+      final videoId = 'story_${currentStory.id}';
+      _globalVideoManager.registerVideoController(videoId, _videoController!);
+      
+      _videoController!.play();
+
+      // Force a rebuild
+      setState(() {});
+    } else {
+      setState(() {
+        _hasVideoError = true;
+        _debugInfo = 'Video initialized but not ready';
+      });
+      _tryFallbackVideo();
+    }
+  }
+
   void _tryFallbackVideo() {
     // Use a known working vertical video URL as fallback
     const fallbackUrl =
@@ -309,8 +361,12 @@ class _StoryViewState extends State<StoryView>
 
     // Clean up any existing controller
     if (_videoController != null) {
-      _videoController!.removeListener(_updateProgress);
-      _videoController!.dispose();
+      try {
+        _videoController!.removeListener(_updateProgress);
+        // Don't dispose cached controllers - let the cache service manage them
+      } catch (e) {
+        debugPrint('StoryView: Error cleaning up video controller in fallback: $e');
+      }
       _videoController = null;
     }
 
@@ -339,6 +395,12 @@ class _StoryViewState extends State<StoryView>
         if (_videoController!.value.isInitialized) {
           _videoController!.addListener(_updateProgress);
           _videoController!.addListener(_checkVideoCompletion);
+          
+          // Register fallback video with global video manager
+          final currentStory = widget.stories[_currentIndex];
+          final videoId = 'story_${currentStory.id}';
+          _globalVideoManager.registerVideoController(videoId, _videoController!);
+          
           _videoController!.play();
 
           // Force a rebuild
@@ -386,8 +448,12 @@ class _StoryViewState extends State<StoryView>
 
     // Clean up any existing controller
     if (_videoController != null) {
-      _videoController!.removeListener(_updateProgress);
-      _videoController!.dispose();
+      try {
+        _videoController!.removeListener(_updateProgress);
+        // Don't dispose cached controllers - let the cache service manage them
+      } catch (e) {
+        debugPrint('StoryView: Error cleaning up video controller in last resort: $e');
+      }
       _videoController = null;
     }
 
@@ -414,6 +480,12 @@ class _StoryViewState extends State<StoryView>
         if (_videoController!.value.isInitialized) {
           _videoController!.addListener(_updateProgress);
           _videoController!.addListener(_checkVideoCompletion);
+          
+          // Register last resort video with global video manager
+          final currentStory = widget.stories[_currentIndex];
+          final videoId = 'story_${currentStory.id}';
+          _globalVideoManager.registerVideoController(videoId, _videoController!);
+          
           _videoController!.play();
 
           // Force a rebuild
@@ -486,6 +558,8 @@ class _StoryViewState extends State<StoryView>
     
     if (_currentIndex < widget.stories.length - 1) {
       debugPrint("StoryView: Advancing to story ${_currentIndex + 1}");
+      // Dispose current video before advancing
+      _disposeCurrentVideo();
       _pageController.animateToPage(
         _currentIndex + 1,
         duration: const Duration(milliseconds: 300),
@@ -517,6 +591,8 @@ class _StoryViewState extends State<StoryView>
 
   void _moveToPreviousStory() {
     if (_currentIndex > 0) {
+      // Dispose current video before going to previous
+      _disposeCurrentVideo();
       _pageController.animateToPage(
         _currentIndex - 1,
         duration: const Duration(milliseconds: 300),
@@ -532,11 +608,8 @@ class _StoryViewState extends State<StoryView>
 
   @override
   void dispose() {
-    if (_videoController != null) {
-      _videoController!.removeListener(_updateProgress);
-      _videoController!.removeListener(_checkVideoCompletion);
-      _videoController!.dispose();
-    }
+    // Ensure video is properly stopped and disposed
+    _disposeCurrentVideo();
     _pageController.dispose();
     _loadingAnimationController.dispose();
     _commentController.removeListener(_onCommentTextChange);
@@ -661,6 +734,8 @@ class _StoryViewState extends State<StoryView>
                       Future.delayed(const Duration(milliseconds: 100), () {
                         debugPrint('StoryView: Swipe down detected, closing story');
                         if (mounted) {
+                          // Dispose video before closing
+                          _disposeCurrentVideo();
                           if (widget.onClose != null) {
                             widget.onClose!();
                           } else {
@@ -692,6 +767,9 @@ class _StoryViewState extends State<StoryView>
                         child: PageView.builder(
                           controller: _pageController,
                           onPageChanged: (index) {
+                            // Dispose previous video controller before moving to next story
+                            _disposeCurrentVideo();
+                            
                             setState(() {
                               _currentIndex = index;
                               _progress = 0.0;
@@ -834,6 +912,8 @@ class _StoryViewState extends State<StoryView>
                   onTap: () {
                     debugPrint('StoryView: Close button tapped');
                     if (mounted) {
+                      // Dispose video before closing
+                      _disposeCurrentVideo();
                       if (widget.onClose != null) {
                         widget.onClose!();
                       } else {
@@ -1756,36 +1836,7 @@ class _StoryViewState extends State<StoryView>
     debugPrint('StoryView: Calling addStoryReaction API...');
     final success = await widget.storyController!.addStoryReaction(storyId, reactionType);
     debugPrint('StoryView: addStoryReaction API returned: $success');
-    
-    if (mounted) {
-      if (success) {
-        // Show success feedback
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(reactionType, style: const TextStyle(fontSize: 18)),
-                const SizedBox(width: 8),
-                const Text('Reaction added!'),
-              ],
-            ),
-            duration: const Duration(seconds: 1),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        // Show error feedback
-        final errorMessage = widget.storyController!.reactionError ?? 'Failed to add reaction';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            duration: const Duration(seconds: 2),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+
     
     return success;
   }

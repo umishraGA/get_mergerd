@@ -1,6 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:flutter_avif/flutter_avif.dart';
+=======
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 import 'package:get/get.dart';
 import 'package:myapp/core/theme/AppTextStyles.dart';
 import 'package:myapp/features/common/widgets/CommonDivider.dart';
@@ -10,7 +13,10 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../controller/event_detail_controller.dart';
 import '../widgets/event_term_condition.dart';
+<<<<<<< HEAD
 import 'event_gallery_girdview.dart';
+=======
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 import 'event_save_datetime_screen.dart';
 
 class EventDetailScreen extends StatefulWidget {
@@ -207,6 +213,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       ),
     );
   }
+<<<<<<< HEAD
   Widget _buildNetworkImage(String url, double height) {
     if (url.toLowerCase().endsWith(".avif")) {
       return AvifImage.network(
@@ -234,6 +241,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       );
     }
   }
+=======
+
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
   @override
   Widget build(BuildContext context) {
     final contentPadding = _getContentPadding(context);
@@ -289,6 +299,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     height: imageHeight,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
+<<<<<<< HEAD
                       child: (event['thumbnail']?.toString().isNotEmpty ?? false)
                           ? _buildNetworkImage(event['thumbnail'].toString(), imageHeight)
                           : Container(
@@ -299,6 +310,28 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     ),
                   ),
 
+=======
+                      child: event['thumbnail']?.toString().isNotEmpty ?? false
+                          ? Image.network(
+                              event['thumbnail'].toString(),
+                              height: imageHeight - 11,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                height: imageHeight - 11,
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.broken_image, size: 60),
+                              ),
+                            )
+                          : Container(
+                              height: imageHeight - 11,
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.broken_image, size: 60),
+                            ),
+                    ),
+                  ),
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                   const SizedBox(height: 10),
 
                   // Event Basic Info Card
@@ -648,11 +681,23 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
+<<<<<<< HEAD
                         EventGalleryGrid(
                           eventImages: (event['gallery_image'] is List &&
                               (event['gallery_image'] as List).isNotEmpty)
                               ? (event['gallery_image'] as List).cast<Map<String, dynamic>>()
                               : [],
+=======
+                        GalleryGrid(
+                          images: (event['gallery_image'] is List &&
+                                  (event['gallery_image'] as List).isNotEmpty)
+                              ? (event['gallery_image'] as List)
+                                  .map<String>(
+                                      (img) => img['url']?.toString() ?? '')
+                                  .where((url) => url.isNotEmpty)
+                                  .toList()
+                              : ['assets/images/events/featured_event_img.png'],
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                           padding: EdgeInsets.zero,
                         )
                       ],
@@ -963,9 +1008,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           size: MediaQuery.of(context).size.width > 600 ? 28 : 24,
                         ),
                         Text(
+<<<<<<< HEAD
                           "${event['paidLowestPrice']?.toString() ?? '00'}" == "00"
                               ? "Free"
                               : "${event['paidLowestPrice']?.toString() ?? '00'} Onwards",
+=======
+                          "${event['paidLowestPrice']?.toString() ?? '00'} Onwards",
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                           style: TextStyle(
                             fontSize: MediaQuery.of(context).size.width > 600 ? 28 : 24,
                             fontWeight: FontWeight.bold,
@@ -979,7 +1028,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                               ),
                             ],
                           ),
+<<<<<<< HEAD
                         )
+=======
+                        ),
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                       ],
                     ),
 

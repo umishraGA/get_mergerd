@@ -6,6 +6,8 @@ import 'package:myapp/features/mainPage/data/open_video_from.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import '../controllers/global_video_manager.dart';
+import '../services/video_post_cache_service.dart';
 
 class VideoPostWidget extends StatefulWidget {
   final String videoPath;
@@ -18,6 +20,7 @@ class VideoPostWidget extends StatefulWidget {
   final bool rememberPosition;
   final VoidCallback? onFullscreenToggle;
   final VoidCallback? onFullscreenExit;
+  final String postId; // Add postId for caching
 
   const VideoPostWidget({
     super.key,
@@ -31,6 +34,7 @@ class VideoPostWidget extends StatefulWidget {
     this.rememberPosition = true,
     this.onFullscreenToggle,
     this.onFullscreenExit,
+    required this.postId, // Add postId parameter
   });
 
   @override
@@ -41,6 +45,9 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
     with SingleTickerProviderStateMixin {
   late VideoPlayerController _controller;
   final OrientationService _orientationService = OrientationService();
+  final GlobalVideoManager _globalVideoManager = GlobalVideoManager();
+  final VideoPostCacheService _cacheService = VideoPostCacheService();
+  late String _videoId; // Unique ID for this video
   bool _isInitialized = false;
   bool _isPlaying = false;
   bool _isVisible = false;
@@ -62,6 +69,9 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
   @override
   void initState() {
     super.initState();
+    
+    // Create stable video ID based on video path only (no timestamp)
+    _videoId = 'video_${widget.videoPath.hashCode}_${widget.openVideoFrom.name}';
 
     // Try to restore the last position first, then initialize the video
     if (widget.rememberPosition) {
@@ -84,10 +94,58 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
         curve: Curves.elasticOut,
       ),
     );
+    
+    // Listen to global video manager changes
+    _globalVideoManager.addListener(_onGlobalVideoStateChanged);
   }
 
   // Get a unique key for storing this video's position
   String get _positionKey => 'video_position_${widget.videoPath.hashCode}';
+  
+  // Handle global video manager state changes
+  void _onGlobalVideoStateChanged() {
+    if (!mounted) return;
+    
+    // If globally paused (e.g., when story is opened), pause this video
+    if (_globalVideoManager.isGloballyPaused && _isPlaying) {
+      _pauseVideo();
+      debugPrint('VideoPostWidget: Paused due to global pause state');
+    }
+  }
+  
+  // Pause this video
+  void _pauseVideo() {
+    if (_isInitialized && _isPlaying) {
+      try {
+        _controller.pause();
+        if (mounted) {
+          setState(() {
+            _isPlaying = false;
+          });
+          _animationController.forward(); // Show play button
+        }
+      } catch (e) {
+        debugPrint('VideoPostWidget: Error pausing video: $e');
+        // Ensure state is consistent even if pause fails
+        if (mounted) {
+          setState(() {
+            _isPlaying = false;
+          });
+        }
+      }
+    }
+  }
+  
+  // Play this video (through global manager)
+  void _playVideo() {
+    if (_isInitialized && !_isPlaying && !_globalVideoManager.isGloballyPaused) {
+      _globalVideoManager.playVideo(_videoId);
+      setState(() {
+        _isPlaying = true;
+      });
+      _animationController.reverse(); // Hide play button
+    }
+  }
 
   // Helper method to retrieve the last watched position from SharedPreferences
   Future<void> _retrieveSavedPosition() async {
@@ -137,12 +195,37 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
 
   Future<void> _initializeVideo() async {
     try {
-      _controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.videoPath),
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-      );
+      // First try to get cached controller from cache service
+      try {
+        _controller = await _cacheService.getCachedVideoController(widget.videoPath, widget.postId);
+        debugPrint("VideoPostWidget: Using cached video controller for post: ${widget.postId}");
+        
+        // Register with global video manager
+        _globalVideoManager.registerVideoController(_videoId, _controller);
+      } catch (e) {
+        debugPrint("VideoPostWidget: Cache failed, trying global manager for $_videoId: $e");
+        
+        // Fallback to global manager
+        final existingController = _globalVideoManager.getVideoController(_videoId);
+        
+        if (existingController != null && existingController.value.isInitialized) {
+          // Reuse existing controller
+          _controller = existingController;
+          print('VideoPostWidget: Reusing existing video controller for $_videoId');
+        } else {
+          // Create new controller as last resort
+          _controller = VideoPlayerController.networkUrl(
+            Uri.parse(widget.videoPath),
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          );
 
-      await _controller.initialize();
+          await _controller.initialize();
+
+          // Register with global video manager
+          _globalVideoManager.registerVideoController(_videoId, _controller);
+          print('VideoPostWidget: Created new video controller for $_videoId');
+        }
+      }
 
       // Only auto-play if the video is visible and autoPlay is true
       if (mounted) {
@@ -169,9 +252,9 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
           _isPositionRestored = true;
         }
 
-        // Start playing if visible and autoplay is enabled
-        if (_isVisible && widget.autoPlay) {
-          _controller.play();
+        // Start playing if visible and autoplay is enabled (only if not globally paused)
+        if (_isVisible && widget.autoPlay && !_globalVideoManager.isGloballyPaused) {
+          _globalVideoManager.playVideo(_videoId);
           _isPlaying = true;
         }
       }
@@ -195,30 +278,29 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
   }
 
   void _togglePlayPause() {
-    if (!_isInitialized) return;
+    if (!_isInitialized || _globalVideoManager.isGloballyPaused) return;
 
     setState(() {
-      _isPlaying = !_isPlaying;
       _isVideoTapped = true;
       _showControls = true; // Always show controls when toggling play/pause
 
       if (_isPlaying) {
-        _controller.play();
-        _animationController.reverse(); // Animate out the play button
-
-        // Auto-hide controls after 3 seconds if the video is playing
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted && _isPlaying) {
-            setState(() {
-              _showControls = false;
-            });
-          }
-        });
+        _pauseVideo();
       } else {
-        _controller.pause();
-        _animationController.forward(); // Animate in the play button
+        _playVideo();
       }
     });
+
+    // Auto-hide controls after 3 seconds if the video is playing
+    if (_isPlaying) {
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted && _isPlaying) {
+          setState(() {
+            _showControls = false;
+          });
+        }
+      });
+    }
 
     // Reset the tap flag after a short delay
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -340,8 +422,24 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
       _savePosition();
     }
 
-    _controller.removeListener(_onVideoPositionChanged);
-    _controller.dispose();
+    // Ensure video is paused before disposing to prevent audio overlap
+    if (_isInitialized && _isPlaying) {
+      _pauseVideo();
+      debugPrint('VideoPostWidget: Paused video before disposal to prevent audio overlap');
+    }
+
+    // Unregister from global video manager
+    _globalVideoManager.unregisterVideoController(_videoId);
+    _globalVideoManager.removeListener(_onGlobalVideoStateChanged);
+
+    try {
+      _controller.removeListener(_onVideoPositionChanged);
+      // Don't dispose cached controllers - let the cache service manage them
+      // The cache service will handle disposal when needed
+    } catch (e) {
+      debugPrint('VideoPostWidget: Error during controller cleanup: $e');
+    }
+    
     _animationController.dispose();
     // Ensure we're not leaving in fullscreen or landscape mode
     if (_isFullscreen) {
@@ -357,8 +455,8 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
       key: Key('video-${widget.videoPath.hashCode}'),
       onVisibilityChanged: (visibilityInfo) {
         final visiblePercentage = visibilityInfo.visibleFraction * 100;
-        // Consider video visible if at least 70% is in view
-        final isVisible = visiblePercentage > 70;
+        // Consider video visible if at least 50% is in view (more aggressive pausing)
+        final isVisible = visiblePercentage > 50;
 
         if (isVisible != _isVisible) {
           setState(() {
@@ -367,16 +465,14 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
 
           // Auto-play when visible and pause when not visible
           if (_isInitialized && widget.autoPlay) {
-            if (isVisible) {
-              _controller.play();
-              _isPlaying = true;
-              _animationController.reverse(); // Hide play button
+            if (isVisible && !_globalVideoManager.isGloballyPaused) {
+              _playVideo();
+              debugPrint('VideoPostWidget: Playing video - visible: ${visiblePercentage.toStringAsFixed(1)}%');
             } else {
               // Save position before pausing
               _savePosition();
-              _controller.pause();
-              _isPlaying = false;
-              _animationController.forward(); // Show play button
+              _pauseVideo();
+              debugPrint('VideoPostWidget: Pausing video - visible: ${visiblePercentage.toStringAsFixed(1)}%');
             }
           }
         }
@@ -389,6 +485,7 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
           children: [
             // Video or thumbnail with smooth fade transition
             _isInitialized
+<<<<<<< HEAD
                 ? VideoPlayer(_controller)
             // AspectRatio(
             //         aspectRatio: _isFullscreen
@@ -398,6 +495,20 @@ class _VideoPostWidgetState extends State<VideoPostWidget>
             //                 : 3.4),
             //         child: VideoPlayer(_controller),
             //       )
+=======
+                ? SizedBox(
+                    width: double.infinity,
+                    height: double.infinity,
+                    child: FittedBox(
+                      fit: BoxFit.contain, // Always use contain to prevent cutting/stretching
+                      child: SizedBox(
+                        width: _controller.value.size.width,
+                        height: _controller.value.size.height,
+                        child: VideoPlayer(_controller),
+                      ),
+                    ),
+                  )
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
                 : AnimatedOpacity(
                     opacity: _isInitialized ? 0.0 : 1.0,
                     duration: const Duration(milliseconds: 300),

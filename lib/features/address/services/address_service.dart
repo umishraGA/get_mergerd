@@ -12,7 +12,11 @@ class AddressService {
 
   Future<String?> _getBearerToken() async {
     try {
+<<<<<<< HEAD
       final token = await AuthHelper.getAuthToken;
+=======
+      final token = await AuthHelper.getAuthToken();
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       print("Token of Auth: $token");
       // await SharedPreferences.getInstance();
       // return prefs.getString('auth_token');

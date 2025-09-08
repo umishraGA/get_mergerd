@@ -3,8 +3,11 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+<<<<<<< HEAD
 import '../../../utils/dio/auth_helper.dart';
 
+=======
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 class CategoryFilterController extends GetxController {
   var selectedCategory = 'All Events'.obs;
   var categories = ['All Events'].obs;
@@ -20,13 +23,26 @@ class CategoryFilterController extends GetxController {
     try {
       isLoading.value = true;
 
+<<<<<<< HEAD
   
+=======
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      if (token == null || token.isEmpty) {
+        throw Exception("No token found");
+      }
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 
       final url = Uri.parse("https://api.gamsgroup.in/user/event/EventCategory");
       final response = await http.get(
         url,
         headers: {
+<<<<<<< HEAD
           "Authorization": "Bearer ${AuthHelper.getAuthToken}",
+=======
+          "Authorization": "Bearer $token",
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
           "Content-Type": "application/json",
         },
       );

@@ -280,7 +280,7 @@ _$CommentResponseImpl _$$CommentResponseImplFromJson(
       data: (json['data'] as List<dynamic>)
           .map((e) => Comment.fromJson(e as Map<String, dynamic>))
           .toList(),
-      message: json['message'] as String,
+      message: json['message'] as String?,
       success: json['success'] as bool,
     );
 
@@ -296,7 +296,7 @@ Map<String, dynamic> _$$CommentResponseImplToJson(
 _$CommentImpl _$$CommentImplFromJson(Map<String, dynamic> json) =>
     _$CommentImpl(
       id: json['_id'] as String,
-      postId: json['postId'] as String?,
+      postId: json['postId'],
       userId: json['userId'],
       message: json['message'] as String?,
       parentCommentId: json['parentCommentId'] as String?,
@@ -306,6 +306,7 @@ _$CommentImpl _$$CommentImplFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const [],
       replyMessage: json['replyMessage'] as String?,
+      isOwner: json['isOwner'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$$CommentImplToJson(_$CommentImpl instance) =>
@@ -318,6 +319,7 @@ Map<String, dynamic> _$$CommentImplToJson(_$CommentImpl instance) =>
       'updatedAt': instance.updatedAt,
       'replies': instance.replies,
       'replyMessage': instance.replyMessage,
+      'isOwner': instance.isOwner,
     };
 
 _$UpdateCommentRequestImpl _$$UpdateCommentRequestImplFromJson(
@@ -350,7 +352,7 @@ _$AddCommentResponseImpl _$$AddCommentResponseImplFromJson(
         Map<String, dynamic> json) =>
     _$AddCommentResponseImpl(
       statusCode: (json['statusCode'] as num).toInt(),
-      message: json['message'] as String,
+      message: json['message'] as String?,
       success: json['success'] as bool,
       data: json['data'],
     );

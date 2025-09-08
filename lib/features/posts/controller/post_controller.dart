@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repository/post_poll_repository.dart';
 import '../../../utils/dio/api_service.dart';
+import '../services/video_post_cache_service.dart';
+import '../models/post_poll_models.dart';
 
 class PostModel {
   final String id;
@@ -140,6 +142,9 @@ class PostController extends GetxController {
   // Repository for API calls
   late final PostPollRepository _repository;
   
+  // Video cache service
+  final VideoPostCacheService _videoCacheService = VideoPostCacheService();
+  
   // Reaction ID mapping based on API response
   static const Map<String, String> _reactionIdMap = {
     'HAHA': '685b8ee2521c10ea3f72e32d',
@@ -224,7 +229,7 @@ class PostController extends GetxController {
         // Track that user has voted on this poll (update or set new vote)
         votedPolls[postId] = optionId;
         
-        // Save voted polls to local image
+        // Save voted polls to local storage
         await _saveVotedPolls();
         
         return true;
@@ -459,7 +464,7 @@ class PostController extends GetxController {
   }
 
 
-  /// Load followed users from local image
+  /// Load followed users from local storage
   Future<void> _loadFollowedUsers() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -478,7 +483,7 @@ class PostController extends GetxController {
     }
   }
 
-  /// Save followed users to local image
+  /// Save followed users to local storage
   Future<void> _saveFollowedUsers() async {
     try {
       final prefs = await SharedPreferences.getInstance();

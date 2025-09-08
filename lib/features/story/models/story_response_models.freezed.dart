@@ -677,7 +677,7 @@ class __$$StoryItemImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$StoryItemImpl implements _StoryItem {
+class _$StoryItemImpl extends _StoryItem {
   const _$StoryItemImpl(
       {@JsonKey(name: '_id') this.id,
       this.description,
@@ -705,7 +705,8 @@ class _$StoryItemImpl implements _StoryItem {
       this.userReaction})
       : _likes = likes,
         _images = images,
-        _media = media;
+        _media = media,
+        super._();
 
   factory _$StoryItemImpl.fromJson(Map<String, dynamic> json) =>
       _$$StoryItemImplFromJson(json);
@@ -885,7 +886,7 @@ class _$StoryItemImpl implements _StoryItem {
   }
 }
 
-abstract class _StoryItem implements StoryItem {
+abstract class _StoryItem extends StoryItem {
   const factory _StoryItem(
       {@JsonKey(name: '_id') final String? id,
       final String? description,
@@ -911,6 +912,7 @@ abstract class _StoryItem implements StoryItem {
       final bool? isLikedByUser,
       final StoryReactionCount? reactionCount,
       final String? userReaction}) = _$StoryItemImpl;
+  const _StoryItem._() : super._();
 
   factory _StoryItem.fromJson(Map<String, dynamic> json) =
       _$StoryItemImpl.fromJson;
@@ -1178,6 +1180,7 @@ mixin _$StoryMediaItem {
   @JsonKey(name: '_id')
   String? get id => throw _privateConstructorUsedError;
   String? get type => throw _privateConstructorUsedError;
+  String? get thumbnail => throw _privateConstructorUsedError;
 
   /// Serializes this StoryMediaItem to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1199,7 +1202,8 @@ abstract class $StoryMediaItemCopyWith<$Res> {
       {String? url,
       String? status,
       @JsonKey(name: '_id') String? id,
-      String? type});
+      String? type,
+      String? thumbnail});
 }
 
 /// @nodoc
@@ -1221,6 +1225,7 @@ class _$StoryMediaItemCopyWithImpl<$Res, $Val extends StoryMediaItem>
     Object? status = freezed,
     Object? id = freezed,
     Object? type = freezed,
+    Object? thumbnail = freezed,
   }) {
     return _then(_value.copyWith(
       url: freezed == url
@@ -1239,6 +1244,10 @@ class _$StoryMediaItemCopyWithImpl<$Res, $Val extends StoryMediaItem>
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
               as String?,
+      thumbnail: freezed == thumbnail
+          ? _value.thumbnail
+          : thumbnail // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -1255,7 +1264,8 @@ abstract class _$$StoryMediaItemImplCopyWith<$Res>
       {String? url,
       String? status,
       @JsonKey(name: '_id') String? id,
-      String? type});
+      String? type,
+      String? thumbnail});
 }
 
 /// @nodoc
@@ -1275,6 +1285,7 @@ class __$$StoryMediaItemImplCopyWithImpl<$Res>
     Object? status = freezed,
     Object? id = freezed,
     Object? type = freezed,
+    Object? thumbnail = freezed,
   }) {
     return _then(_$StoryMediaItemImpl(
       url: freezed == url
@@ -1293,6 +1304,10 @@ class __$$StoryMediaItemImplCopyWithImpl<$Res>
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
               as String?,
+      thumbnail: freezed == thumbnail
+          ? _value.thumbnail
+          : thumbnail // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -1301,7 +1316,11 @@ class __$$StoryMediaItemImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$StoryMediaItemImpl implements _StoryMediaItem {
   const _$StoryMediaItemImpl(
-      {this.url, this.status, @JsonKey(name: '_id') this.id, this.type});
+      {this.url,
+      this.status,
+      @JsonKey(name: '_id') this.id,
+      this.type,
+      this.thumbnail});
 
   factory _$StoryMediaItemImpl.fromJson(Map<String, dynamic> json) =>
       _$$StoryMediaItemImplFromJson(json);
@@ -1315,10 +1334,12 @@ class _$StoryMediaItemImpl implements _StoryMediaItem {
   final String? id;
   @override
   final String? type;
+  @override
+  final String? thumbnail;
 
   @override
   String toString() {
-    return 'StoryMediaItem(url: $url, status: $status, id: $id, type: $type)';
+    return 'StoryMediaItem(url: $url, status: $status, id: $id, type: $type, thumbnail: $thumbnail)';
   }
 
   @override
@@ -1329,12 +1350,15 @@ class _$StoryMediaItemImpl implements _StoryMediaItem {
             (identical(other.url, url) || other.url == url) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.id, id) || other.id == id) &&
-            (identical(other.type, type) || other.type == type));
+            (identical(other.type, type) || other.type == type) &&
+            (identical(other.thumbnail, thumbnail) ||
+                other.thumbnail == thumbnail));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, url, status, id, type);
+  int get hashCode =>
+      Object.hash(runtimeType, url, status, id, type, thumbnail);
 
   /// Create a copy of StoryMediaItem
   /// with the given fields replaced by the non-null parameter values.
@@ -1358,7 +1382,8 @@ abstract class _StoryMediaItem implements StoryMediaItem {
       {final String? url,
       final String? status,
       @JsonKey(name: '_id') final String? id,
-      final String? type}) = _$StoryMediaItemImpl;
+      final String? type,
+      final String? thumbnail}) = _$StoryMediaItemImpl;
 
   factory _StoryMediaItem.fromJson(Map<String, dynamic> json) =
       _$StoryMediaItemImpl.fromJson;
@@ -1372,6 +1397,8 @@ abstract class _StoryMediaItem implements StoryMediaItem {
   String? get id;
   @override
   String? get type;
+  @override
+  String? get thumbnail;
 
   /// Create a copy of StoryMediaItem
   /// with the given fields replaced by the non-null parameter values.
@@ -1396,6 +1423,7 @@ mixin _$StoryChooseTypeId {
   String? get updatedAt => throw _privateConstructorUsedError;
   StoryCompanyInfo? get companyInfo => throw _privateConstructorUsedError;
   StoryLogo? get logo => throw _privateConstructorUsedError;
+  String? get name => throw _privateConstructorUsedError;
   String? get vendorId => throw _privateConstructorUsedError;
 
   /// Serializes this StoryChooseTypeId to a JSON map.
@@ -1422,6 +1450,7 @@ abstract class $StoryChooseTypeIdCopyWith<$Res> {
       String? updatedAt,
       StoryCompanyInfo? companyInfo,
       StoryLogo? logo,
+      String? name,
       String? vendorId});
 
   $StoryCompanyInfoCopyWith<$Res>? get companyInfo;
@@ -1450,6 +1479,7 @@ class _$StoryChooseTypeIdCopyWithImpl<$Res, $Val extends StoryChooseTypeId>
     Object? updatedAt = freezed,
     Object? companyInfo = freezed,
     Object? logo = freezed,
+    Object? name = freezed,
     Object? vendorId = freezed,
   }) {
     return _then(_value.copyWith(
@@ -1481,6 +1511,10 @@ class _$StoryChooseTypeIdCopyWithImpl<$Res, $Val extends StoryChooseTypeId>
           ? _value.logo
           : logo // ignore: cast_nullable_to_non_nullable
               as StoryLogo?,
+      name: freezed == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String?,
       vendorId: freezed == vendorId
           ? _value.vendorId
           : vendorId // ignore: cast_nullable_to_non_nullable
@@ -1533,6 +1567,7 @@ abstract class _$$StoryChooseTypeIdImplCopyWith<$Res>
       String? updatedAt,
       StoryCompanyInfo? companyInfo,
       StoryLogo? logo,
+      String? name,
       String? vendorId});
 
   @override
@@ -1561,6 +1596,7 @@ class __$$StoryChooseTypeIdImplCopyWithImpl<$Res>
     Object? updatedAt = freezed,
     Object? companyInfo = freezed,
     Object? logo = freezed,
+    Object? name = freezed,
     Object? vendorId = freezed,
   }) {
     return _then(_$StoryChooseTypeIdImpl(
@@ -1592,6 +1628,10 @@ class __$$StoryChooseTypeIdImplCopyWithImpl<$Res>
           ? _value.logo
           : logo // ignore: cast_nullable_to_non_nullable
               as StoryLogo?,
+      name: freezed == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String?,
       vendorId: freezed == vendorId
           ? _value.vendorId
           : vendorId // ignore: cast_nullable_to_non_nullable
@@ -1611,6 +1651,7 @@ class _$StoryChooseTypeIdImpl implements _StoryChooseTypeId {
       this.updatedAt,
       this.companyInfo,
       this.logo,
+      this.name,
       this.vendorId})
       : _additional_info = additional_info;
 
@@ -1641,11 +1682,13 @@ class _$StoryChooseTypeIdImpl implements _StoryChooseTypeId {
   @override
   final StoryLogo? logo;
   @override
+  final String? name;
+  @override
   final String? vendorId;
 
   @override
   String toString() {
-    return 'StoryChooseTypeId(id: $id, gurudwara_id: $gurudwara_id, image: $image, additional_info: $additional_info, updatedAt: $updatedAt, companyInfo: $companyInfo, logo: $logo, vendorId: $vendorId)';
+    return 'StoryChooseTypeId(id: $id, gurudwara_id: $gurudwara_id, image: $image, additional_info: $additional_info, updatedAt: $updatedAt, companyInfo: $companyInfo, logo: $logo, name: $name, vendorId: $vendorId)';
   }
 
   @override
@@ -1664,6 +1707,7 @@ class _$StoryChooseTypeIdImpl implements _StoryChooseTypeId {
             (identical(other.companyInfo, companyInfo) ||
                 other.companyInfo == companyInfo) &&
             (identical(other.logo, logo) || other.logo == logo) &&
+            (identical(other.name, name) || other.name == name) &&
             (identical(other.vendorId, vendorId) ||
                 other.vendorId == vendorId));
   }
@@ -1679,6 +1723,7 @@ class _$StoryChooseTypeIdImpl implements _StoryChooseTypeId {
       updatedAt,
       companyInfo,
       logo,
+      name,
       vendorId);
 
   /// Create a copy of StoryChooseTypeId
@@ -1707,6 +1752,7 @@ abstract class _StoryChooseTypeId implements StoryChooseTypeId {
       final String? updatedAt,
       final StoryCompanyInfo? companyInfo,
       final StoryLogo? logo,
+      final String? name,
       final String? vendorId}) = _$StoryChooseTypeIdImpl;
 
   factory _StoryChooseTypeId.fromJson(Map<String, dynamic> json) =
@@ -1727,6 +1773,8 @@ abstract class _StoryChooseTypeId implements StoryChooseTypeId {
   StoryCompanyInfo? get companyInfo;
   @override
   StoryLogo? get logo;
+  @override
+  String? get name;
   @override
   String? get vendorId;
 

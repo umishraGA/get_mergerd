@@ -3,8 +3,11 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+<<<<<<< HEAD
 import '../../../utils/dio/auth_helper.dart';
 
+=======
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 // -------- MODEL --------
 class EventBanner {
   final String id;
@@ -51,7 +54,19 @@ class EventBannerController extends GetxController {
       isLoading.value = true;
       errorMessage.value = "";
 
+<<<<<<< HEAD
   
+=======
+      // Get token from SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString("token");
+
+      if (token == null || token.isEmpty) {
+        errorMessage.value = "No authentication token found.";
+        isLoading.value = false;
+        return;
+      }
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 
       // Prepare request body with latitude & longitude
       final body = jsonEncode({
@@ -63,7 +78,11 @@ class EventBannerController extends GetxController {
         Uri.parse(apiUrl),
         headers: {
           "Content-Type": "application/json",
+<<<<<<< HEAD
           "Authorization": "Bearer ${AuthHelper.getAuthToken}",
+=======
+          "Authorization": "Bearer $token",
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
         },
         body: body,
       );

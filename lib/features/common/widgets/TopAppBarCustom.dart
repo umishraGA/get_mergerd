@@ -14,6 +14,10 @@ class TopAppBarCustom extends StatefulWidget {
     this.subTitleColor = Colors.white,
     this.isVisibleSearchBar = true,
     this.onSearchSubmitted,
+<<<<<<< HEAD
+=======
+    this.onNotificationTap,
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
   });
 
   final Color color;
@@ -21,6 +25,10 @@ class TopAppBarCustom extends StatefulWidget {
   final Color subTitleColor;
   final bool isVisibleSearchBar;
   final Function(String)? onSearchSubmitted;
+<<<<<<< HEAD
+=======
+  final VoidCallback? onNotificationTap;
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 
   @override
   State<TopAppBarCustom> createState() => _TopAppBarCustomState();
@@ -150,7 +158,7 @@ class _TopAppBarCustomState extends State<TopAppBarCustom> with WidgetsBindingOb
                 ),
                 // Notification bell
                 GestureDetector(
-                  onTap: () => _navigateToLocationSearch(context),
+                  onTap: widget.onNotificationTap ?? () => _navigateToLocationSearch(context),
                   child: Container(
                     padding: const EdgeInsets.all(5),
                     // decoration: BoxDecoration(

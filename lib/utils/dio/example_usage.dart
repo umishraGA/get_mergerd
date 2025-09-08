@@ -29,7 +29,10 @@ class ExampleApiRepository {
           token: response['token'] as String,
           refreshToken: response['refresh_token'] as String?,
           userId: response['user']?['id']?.toString(),
+<<<<<<< HEAD
           isProfileCompleted: response['isComplete'] as bool? ?? false,
+=======
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
         );
       }
 

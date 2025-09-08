@@ -17,7 +17,7 @@ class StoryRepository {
   /// Get bearer token from SharedPreferences
   Future<String?> _getBearerToken() async {
     try {
-      final token = AuthHelper.getAuthToken;
+      final token = await AuthHelper.getAuthToken;
       // await SharedPreferences.getInstance();
       // return prefs.getString('auth_token');
       // Using hardcoded token for now, same as PostPollRepository

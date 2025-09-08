@@ -3,8 +3,11 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+<<<<<<< HEAD
 import '../../../utils/dio/auth_helper.dart';
 
+=======
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
 class EventByIdController extends GetxController {
   var isLoading = false.obs;
   var eventData = Rxn<Map<String, dynamic>>();
@@ -16,13 +19,23 @@ class EventByIdController extends GetxController {
     eventData.value = null;
 
     try {
+<<<<<<< HEAD
   
+=======
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
       final url = Uri.parse('https://api.gamsgroup.in/user/event/EventByid'); // Replace with your actual API URL
 
       final response = await http.post(
         url,
         headers: {
+<<<<<<< HEAD
           'Authorization': 'Bearer ${AuthHelper.getAuthToken}',
+=======
+          'Authorization': 'Bearer $token',
+>>>>>>> a12b8cdc96c71b22503145f01065de5b4cacf34b
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
