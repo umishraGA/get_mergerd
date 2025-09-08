@@ -1,0 +1,2 @@
+C:/Users/mishr/StudioProjects/Mobile-App/Social-Media/android/app/.cxx/RelWithDebInfo/39221k4f/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/mishr/StudioProjects/Mobile-App/Social-Media/android/app/.cxx/RelWithDebInfo/39221k4f/arm64-v8a/CMakeFiles/rebuild_cache.dir
