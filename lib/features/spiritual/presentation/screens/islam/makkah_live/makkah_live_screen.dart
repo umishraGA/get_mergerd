@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:video_player/video_player.dart';
 import '../../../Islam_controller/mackkalive_controller.dart';
 
 class MakkahLiveScreen extends StatefulWidget {
-  MakkahLiveScreen({super.key});
+  const MakkahLiveScreen({super.key});
 
   @override
   State<MakkahLiveScreen> createState() => _MakkahLiveScreenState();
@@ -12,6 +12,90 @@ class MakkahLiveScreen extends StatefulWidget {
 
 class _MakkahLiveScreenState extends State<MakkahLiveScreen> {
   final MakkaLiveController controller = Get.put(MakkaLiveController());
+  VideoPlayerController? _videoController;
+  bool _isPlaying = false;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVideo();
+  }
+
+  Future<void> _loadVideo() async {
+    await controller.fetchMakkaLiveUrl();
+    if (controller.videoUrl.value.isNotEmpty) {
+      try {
+        _videoController =
+        VideoPlayerController.networkUrl(Uri.parse(controller.videoUrl.value))
+          ..initialize().then((_) {
+            setState(() {});
+            _videoController?.play();
+            _isPlaying = true;
+          }).catchError((_) {
+            setState(() {
+              _hasError = true;
+            });
+          });
+      } catch (e) {
+        setState(() {
+          _hasError = true;
+        });
+      }
+    }
+  }
+
+  void _togglePlayPause() {
+    if (_videoController == null) return;
+    setState(() {
+      if (_videoController!.value.isPlaying) {
+        _videoController!.pause();
+        _isPlaying = false;
+      } else {
+        _videoController!.play();
+        _isPlaying = true;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  Widget _buildVideoPlayer() {
+    if (_hasError) {
+      return const Center(
+        child: Text("Error loading video"),
+      );
+    }
+
+    if (_videoController == null || !_videoController!.value.isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return AspectRatio(
+      aspectRatio: _videoController!.value.aspectRatio,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          VideoPlayer(_videoController!),
+          GestureDetector(
+            onTap: _togglePlayPause,
+            child: Container(
+              color: Colors.black.withOpacity(0.3),
+              child: Icon(
+                _isPlaying ? Icons.pause_circle : Icons.play_circle,
+                size: 60,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,142 +128,108 @@ class _MakkahLiveScreenState extends State<MakkahLiveScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: FutureBuilder(
-        future: controller.fetchMakkaLiveUrl(),
-        builder: (context, snapshot) {
-          return Obx(() {
-            if (controller.isLoading.value) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-            final url = controller.videoUrl.value;
+        if (controller.videoUrl.value.isEmpty) {
+          return const Center(child: Text("No video available"));
+        }
 
-            if (url.isEmpty) {
-              return const Center(child: Text("No video available"));
-            }
-
-            final videoId = YoutubePlayer.convertUrlToId(url);
-
-            if (videoId == null) {
-              return const Center(child: Text("Invalid YouTube URL"));
-            }
-
-            final YoutubePlayerController _ytController = YoutubePlayerController(
-              initialVideoId: videoId,
-              flags: const YoutubePlayerFlags(
-                autoPlay: false,
-                mute: false,
-                controlsVisibleAtStart: true,
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Video Player Card
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, 5),
+                  ),
+                ],
+                color: Colors.white,
               ),
-            );
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: _buildVideoPlayer(),
+              ),
+            ),
 
-            return ListView(
-              padding: const EdgeInsets.all(16),
+            const SizedBox(height: 20),
+
+            // LIVE Indicator
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // YouTube Player Card
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 10,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                    color: Colors.white,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: YoutubePlayerBuilder(
-                      player: YoutubePlayer(
-                        controller: _ytController,
-                        showVideoProgressIndicator: true,
-                        progressIndicatorColor: Colors.redAccent,
-                      ),
-                      builder: (context, player) {
-                        return AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: player,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // LIVE Indicator
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.circle, color: Colors.red, size: 10),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'LIVE',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
+                  children: const [
+                    Icon(Icons.circle, color: Colors.red, size: 10),
+                    SizedBox(width: 6),
                     Text(
-                      'Live • $currentDate',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.black54,
+                      'LIVE',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
                       ),
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 20),
-
-                const Text(
-                  'Watch Makkah Live - Holy Kaaba 24/7',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2C5364),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                const Text(
-                  'Experience the live stream of the holiest site in Islam. Join millions around the world in spiritual connection.',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.black87,
-                    height: 1.5,
-                  ),
-                ),
-
-                const SizedBox(height: 25),
-
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/spiritual/islam/donation');
-                  },
-                  icon: const Icon(Icons.favorite),
-                  label: const Text('Donate'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
+                Text(
+                  'Live • $currentDate',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
                   ),
                 ),
               ],
-            );
-          });
-        },
-      ),
+            ),
+
+            const SizedBox(height: 20),
+
+            const Text(
+              'Watch Makkah Live - Holy Kaaba 24/7',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2C5364),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            const Text(
+              'Experience the live stream of the holiest site in Islam. Join millions around the world in spiritual connection.',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.black87,
+                height: 1.5,
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, '/spiritual/islam/donation');
+              },
+              icon: const Icon(Icons.favorite),
+              label: const Text('Donate'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 }

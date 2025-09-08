@@ -2,131 +2,78 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:myapp/features/common/widgets/CommonDivider.dart';
-import 'package:myapp/features/spiritual/presentation/screens/live_darshan_fullscreen_player.dart';
 import 'package:myapp/features/spiritual/presentation/widgets/DarshanCard.dart';
 import 'package:myapp/features/utsav/widgets/AppHeader.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../controller/live_darshan_detail_controller.dart';
+import 'package:video_player/video_player.dart';
 
 class LiveDarshanPlayerScreen extends StatefulWidget {
   final String id;
 
-  const LiveDarshanPlayerScreen({
-    super.key,
-    required this.id,
-  });
+  const LiveDarshanPlayerScreen({super.key, required this.id});
 
   @override
-  State<LiveDarshanPlayerScreen> createState() => _LiveDarshanPlayerScreenState();
+  State<LiveDarshanPlayerScreen> createState() =>
+      _LiveDarshanPlayerScreenState();
 }
 
-class _LiveDarshanPlayerScreenState extends State<LiveDarshanPlayerScreen>
-    with SingleTickerProviderStateMixin {
-  final DetailLiveDarshanController controller = Get.put(DetailLiveDarshanController());
-  YoutubePlayerController? _youtubeController;
-  bool _isPlaying = false;
+class _LiveDarshanPlayerScreenState extends State<LiveDarshanPlayerScreen> {
+  final DetailLiveDarshanController controller =
+  Get.put(DetailLiveDarshanController());
+
+  VideoPlayerController? _videoController;
   bool _hasError = false;
-  bool _isVideoTapped = false;
-  late AnimationController _animationController;
-  late Animation<double> _playPauseAnimation;
+  bool _isPlaying = false;
 
   @override
   void initState() {
     super.initState();
     controller.fetchLiveDarshan(widget.id).then((_) {
       if (mounted && controller.data.isNotEmpty) {
-        _initializeYoutubePlayer();
+        _initializeVideoPlayer();
       }
     });
-
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    _playPauseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.elasticOut,
-      ),
-    );
   }
 
   String get _videoUrl => controller.data['embeddedLink']?.toString() ?? '';
 
-  void _initializeYoutubePlayer() {
+  void _initializeVideoPlayer() {
     try {
-      final videoId = YoutubePlayer.convertUrlToId(_videoUrl);
-      if (videoId == null || videoId.isEmpty) {
-        throw Exception('Invalid YouTube URL');
-      }
+      if (_videoUrl.isEmpty) throw Exception("Invalid video URL");
 
-      _youtubeController = YoutubePlayerController(
-        initialVideoId: videoId,
-        flags: const YoutubePlayerFlags(
-          autoPlay: true,
-          mute: false,
-          enableCaption: false,
-        ),
-      )..addListener(() {
-        if (mounted) {
+      _videoController = VideoPlayerController.networkUrl(Uri.parse(_videoUrl))
+        ..initialize().then((_) {
+          setState(() {});
+          _videoController?.play();
+          _isPlaying = true;
+        }).catchError((_) {
           setState(() {
-            _isPlaying = _youtubeController?.value.isPlaying ?? false;
+            _hasError = true;
           });
-        }
-      });
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _hasError = true;
         });
-      }
+    } catch (e) {
+      setState(() {
+        _hasError = true;
+      });
     }
   }
 
   void _togglePlayPause() {
-    if (_youtubeController == null) return;
-
+    if (_videoController == null) return;
     setState(() {
-      _isVideoTapped = true;
-      if (_youtubeController!.value.isPlaying) {
-        _youtubeController!.pause();
-        _animationController.forward();
+      if (_videoController!.value.isPlaying) {
+        _videoController!.pause();
+        _isPlaying = false;
       } else {
-        _youtubeController!.play();
-        _animationController.reverse();
+        _videoController!.play();
+        _isPlaying = true;
       }
     });
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        setState(() {
-          _isVideoTapped = false;
-        });
-      }
-    });
-  }
-
-  void _openFullscreenPlayer() {
-    if (_videoUrl.isEmpty) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => LiveDarshanFullscreenPlayer(
-          videoUrl: _videoUrl,
-          onBack: () => Navigator.of(context).pop(),
-          thumbnailUrl: controller.data['thumbnail']?.toString() ?? '',
-          title: controller.data['title']?.toString() ?? '',
-          temple: controller.data['temple']?['name']?.toString() ?? '',
-        ),
-      ),
-    );
   }
 
   @override
   void dispose() {
-    _youtubeController?.dispose();
-    _animationController.dispose();
+    _videoController?.dispose();
     super.dispose();
   }
 
@@ -150,122 +97,49 @@ class _LiveDarshanPlayerScreenState extends State<LiveDarshanPlayerScreen>
     }
   }
 
-  Widget _buildYoutubePlayer() {
+  Widget _buildVideoPlayer() {
     if (_hasError) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Container(
-          height: 200,
-          width:double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 40),
-              const SizedBox(height: 8),
-              const Text('No live video'),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _hasError = false;
-                  });
-                  _initializeYoutubePlayer();
-                },
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+      return Container(
+        height: 200,
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(
+          child: Text("No live video available"),
         ),
       );
     }
 
-    if (_youtubeController == null) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Container(
-          height: 200,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Center(child: CircularProgressIndicator()),
+    if (_videoController == null || !_videoController!.value.isInitialized) {
+      return Container(
+        height: 200,
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(16),
         ),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+      child: AspectRatio(
+        aspectRatio: _videoController!.value.aspectRatio,
         child: Stack(
           alignment: Alignment.center,
           children: [
-            YoutubePlayer(
-              controller: _youtubeController!,
-              showVideoProgressIndicator: true,
-              progressIndicatorColor: Colors.white,
-              progressColors: const ProgressBarColors(
-                playedColor: Colors.white,
-                handleColor: Colors.white,
-                bufferedColor: Colors.white54,
-                backgroundColor: Colors.white24,
-              ),
-              onReady: () {
-                setState(() {
-                  _isPlaying = true;
-                });
-              },
-              onEnded: (error) {
-                setState(() {
-                  _hasError = true;
-                });
-              },
-            ),
-
-            if (!_isPlaying || _isVideoTapped)
-              AnimatedBuilder(
-                animation: _playPauseAnimation,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _playPauseAnimation.value,
-                    child: GestureDetector(
-                      onTap: _togglePlayPause,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _isPlaying ? Icons.pause : Icons.play_arrow,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: _openFullscreenPlayer,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Icon(
-                    Icons.fullscreen,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+            VideoPlayer(_videoController!),
+            GestureDetector(
+              onTap: _togglePlayPause,
+              child: Container(
+                color: Colors.black.withOpacity(0.2),
+                child: Icon(
+                  _isPlaying ? Icons.pause_circle : Icons.play_circle,
+                  size: 60,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -291,7 +165,7 @@ class _LiveDarshanPlayerScreenState extends State<LiveDarshanPlayerScreen>
         return Column(
           children: [
             const AppHeader(title: 'Live Darshan'),
-            _buildYoutubePlayer(),
+            _buildVideoPlayer(),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -417,9 +291,10 @@ class _LiveDarshanPlayerScreenState extends State<LiveDarshanPlayerScreen>
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => LiveDarshanPlayerScreen(
-                                      id: item['_id']?.toString() ?? '',
-                                    ),
+                                    builder: (context) =>
+                                        LiveDarshanPlayerScreen(
+                                          id: item['_id']?.toString() ?? '',
+                                        ),
                                   ),
                                 );
                               },

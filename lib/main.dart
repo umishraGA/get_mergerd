@@ -1,24 +1,40 @@
+// main.dart
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+// Project-specific imports — adjust paths as needed in your project:
+import 'main_widget.dart'; // (should export ResponsiveApp, AppThemes, RouteManager, SplashScreen, etc.)
 import 'package:myapp/features/auth/screens/sign_up_screen.dart';
+// If AuthHelper, AudioService, ThemeProvider, LocaleProvider, UtsavVoucherProvider,
+// SearchProvider, ReactionController are in other files, ensure those files are imported
+// or exported by main_widget.dart.
 
-import 'main_widget.dart';
-
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // initialize shared preferences
-  AuthHelper.init();
-  // Set preferred orientations to portrait only by default
+
+  // Initialize AuthHelper (await to ensure it's ready before using its flags)
+  try {
+    await AuthHelper.init();
+  } catch (e) {
+    // If initialization fails, log it — don't crash the app silently.
+    debugPrint('AuthHelper.init() failed: $e');
+  }
+
+  // Lock orientation to portrait
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // IMPORTANT: Set proper system UI settings
+  // Configure system UI overlays
   SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.manual,
     overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
   );
 
-  // Configure system UI overlay
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -27,8 +43,12 @@ void main() async {
     ),
   );
 
-  // Initialize audio service
-  await AudioService().initialize();
+  // Initialize audio service safely (with try/catch)
+  try {
+    await AudioService().initialize();
+  } catch (e) {
+    debugPrint('AudioService initialization failed: $e');
+  }
 
   runApp(
     MultiProvider(
@@ -37,7 +57,6 @@ void main() async {
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) {
           final provider = UtsavVoucherProvider();
-          // Initialize with sample data for testing
           provider.initSampleData();
           return provider;
         }),
@@ -54,61 +73,56 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // AuthHelper.clearAuthData();
     return Consumer2<ThemeProvider, LocaleProvider>(
       builder: (context, themeProvider, localeProvider, child) {
         return GetMaterialApp(
           debugShowCheckedModeBanner: false,
-          home: ResponsiveApp(
-            materialApp: MaterialApp(
-              title: 'Happening Bazar',
-              theme: AppThemes.lightThemes[themeProvider.colorTheme],
-              themeMode: ThemeMode.light,
-              locale: localeProvider.locale,
-              debugShowCheckedModeBanner: false,
-              localizationsDelegates: const [
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-              supportedLocales: const [
-                Locale('en', ''), // English
-              ],
-              // Add a builder to wrap all screens in a SafeArea
-              builder: (context, child) {
-                return SafeArea(
-                  // Only apply SafeArea to the bottom
-                  top: false,
-                  left: false,
-                  right: false,
-                  bottom: true,
-                  // Maintain theme background color
-                  child: Theme(
-                    data: Theme.of(context),
-                    child: child!,
-                  ),
-                );
-              },
-              // Show MainPage if user is authenticated, otherwise show SplashScreen
-              home: const SplashScreen(),
-              routes: {
-                RouteManager.mainPage: (context) {
-                  if (AuthHelper.isFullyOnboarded) {
-                    if (AuthHelper.getProfileCompleted) {
-                      return const MainPage();
-                    } else {
-                      return const SignUpScreen();
-                    }
-                  } else {
-                    return const SignInScreen();
-                  }
-                },
-                RouteManager.profilePage: (context) => const ProfilePage(),
-                RouteManager.memberInformationPage: (context) => const MemberInformationScreen(),
-              },
-              onGenerateRoute: RouteManager.generateRoute,
-            ),
-          ),
+          title: 'Happening Bazar',
+          // Use your app theme provider
+          theme: AppThemes.lightThemes[themeProvider.colorTheme],
+          themeMode: ThemeMode.light,
+          locale: localeProvider.locale,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('en', ''),
+          ],
+
+          // Wrap all screens in SafeArea (top: false to allow status bar color handling)
+          builder: (context, child) {
+            return SafeArea(
+              top: false,
+              left: true,
+              right: true,
+              bottom: true,
+              child: Theme(data: Theme.of(context), child: child ?? const SizedBox()),
+            );
+          },
+
+          // Start with splash screen
+          home: const SplashScreen(),
+
+          // Routes: the mainPage route returns the appropriate page based on AuthHelper flags
+          routes: {
+            RouteManager.mainPage: (context) {
+              if (AuthHelper.isFullyOnboarded) {
+                if (AuthHelper.getProfileCompleted) {
+                  return const MainPage();
+                } else {
+                  return const SignUpScreen();
+                }
+              } else {
+                return const SignInScreen();
+              }
+            },
+            RouteManager.profilePage: (context) => const ProfilePage(),
+            RouteManager.memberInformationPage: (context) => const MemberInformationScreen(),
+          },
+
+          onGenerateRoute: RouteManager.generateRoute,
         );
       },
     );

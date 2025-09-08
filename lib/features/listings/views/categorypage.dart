@@ -7,14 +7,14 @@ import 'package:myapp/features/common/widgets/TopAppBarCustom.dart';
 import '../controller/categorycontroller.dart'; // Your controller
 import '../widgets/RequestQuoteForm.dart';
 
-class ListingsPageTest extends StatefulWidget {
-  const ListingsPageTest({super.key});
+class ListingsPage extends StatefulWidget {
+  const ListingsPage({super.key});
 
   @override
-  State<ListingsPageTest> createState() => _ListingsPageState();
+  State<ListingsPage> createState() => _ListingsPageState();
 }
 
-class _ListingsPageState extends State<ListingsPageTest> {
+class _ListingsPageState extends State<ListingsPage> {
   final CategoryControllerTest controller = Get.put(CategoryControllerTest());
 
   @override
@@ -22,26 +22,25 @@ class _ListingsPageState extends State<ListingsPageTest> {
     final isTablet = MediaQuery.of(context).size.width > 600;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const TopAppBarCustom(isVisibleSearchBar: false),
-            Bannercorousal(
-              height: isTablet ? 280 : 160,
-            ),
-            Obx(() {
-              if (controller.isLoading.value) return _buildSkeletonLoading();
-              if (controller.currentCategories.isEmpty) return _buildNoCategoriesFound();
-              return _buildMainCategoriesGrid();
-            }),
-            const SizedBox(height: 10),
-            const CommonDivider(),
-            const RequestQuoteForm(),
-            const CommonDivider(),
-            _buildBusinessPromotionBanner(),
-          ],
-        ),
+      body: ListView(
+        padding: EdgeInsets.zero,
+        // crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const TopAppBarCustom(isVisibleSearchBar: false),
+          Bannercorousal(
+            height: isTablet ? 280 : 160,
+          ),
+          Obx(() {
+            if (controller.isLoading.value) return _buildSkeletonLoading();
+            if (controller.currentCategories.isEmpty) return _buildNoCategoriesFound();
+            return _buildMainCategoriesGrid();
+          }),
+          const SizedBox(height: 10),
+          const CommonDivider(),
+          const RequestQuoteForm(),
+          const CommonDivider(),
+          _buildBusinessPromotionBanner(),
+        ],
       ),
     );
   }
@@ -58,63 +57,61 @@ class _ListingsPageState extends State<ListingsPageTest> {
     int crossAxisCount = 3;
     int rowCount = (controller.currentCategories.length / crossAxisCount).ceil();
     double width = MediaQuery.of(context).size.width;
-    double spacing = 16;
-    double itemWidth = (width - (crossAxisCount + 1) * spacing) / crossAxisCount;
-    double itemHeight = itemWidth * 1.2;
+    double spacing = 19;
+    double itemWidth = (width - (crossAxisCount + 0) * spacing) / crossAxisCount;
+    double itemHeight = itemWidth * 1.4;
 
-    return SizedBox(
-      height: rowCount * itemHeight + (rowCount - 1) * spacing,
-      child: GridView.builder(
-        physics: const NeverScrollableScrollPhysics(),
-        padding: EdgeInsets.all(spacing),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          childAspectRatio: itemWidth / itemHeight,
-          crossAxisSpacing: spacing,
-          mainAxisSpacing: spacing,
-        ),
-        itemCount: controller.currentCategories.length,
-        itemBuilder: (context, index) {
-          final category = controller.currentCategories[index];
-          return InkWell(
-            onTap: () => controller.navigateToSubcategoryPage(context, category),
-            borderRadius: BorderRadius.circular(12),
-            child: Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                      child: _buildCategoryImage(category.bannerImage),
-                    ),
+    return GridView.builder(
+      physics: const NeverScrollableScrollPhysics(),shrinkWrap: true,
+      padding: EdgeInsets.all(spacing),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: itemWidth / itemHeight,
+        crossAxisSpacing: spacing,
+        mainAxisSpacing: spacing,
+      ),
+      itemCount: controller.currentCategories.length,
+      itemBuilder: (context, index) {
+        final category = controller.currentCategories[index];
+        return InkWell(
+          onTap: () => controller.navigateToSubcategoryPage(context, category),
+          borderRadius: BorderRadius.circular(10),
+          child: Card(
+
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    child: _buildCategoryImage(category.bannerImage),
                   ),
-                  Expanded(
-                    flex: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Center(
-                        child: Text(
-                          formatName(category.name),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                        ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Center(
+                      child: Text(
+                        formatName(category.name),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 

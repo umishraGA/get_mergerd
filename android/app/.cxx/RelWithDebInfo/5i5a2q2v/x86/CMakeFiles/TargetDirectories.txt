@@ -1,2 +1,0 @@
-/Users/ajay/flutter projects/Social-Media/android/app/.cxx/RelWithDebInfo/5i5a2q2v/x86/CMakeFiles/edit_cache.dir
-/Users/ajay/flutter projects/Social-Media/android/app/.cxx/RelWithDebInfo/5i5a2q2v/x86/CMakeFiles/rebuild_cache.dir

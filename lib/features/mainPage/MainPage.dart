@@ -142,7 +142,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
               ],
             ),
         const SpiritualScreen(),       // TicketPage(eventId: '68944c4e02145fd86b8da317',),
-        const ListingsPageTest(),
+        const ListingsPage(),
         const UtsavPage(),
         const EventsScreen(),
         const QuizHome(),
